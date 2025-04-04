@@ -1,13 +1,11 @@
-import Alerts from "./components/ui/Alerts"
-import "./App.css"
+import Alerts from "./components/ui/Alerts";
 
 function App() {
   return (
     <div className="App">
       <Alerts />
     </div>
-  )
+  );
 }
 
-export default App
-
+export default App;
