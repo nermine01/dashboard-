@@ -3,11 +3,12 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDownIcon } from "./Icons";
 
-function Dropdown({ label, items }) {
+function Dropdown({ label, items, onSelect }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
   const dropdownRef = useRef(null);
 
-  // Close dropdown when clicking outside
+  // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -21,13 +22,19 @@ function Dropdown({ label, items }) {
     };
   }, []);
 
+  const handleSelect = (item) => {
+    setSelected(item);
+    setIsOpen(false);
+    if (onSelect) onSelect(item);
+  };
+
   return (
     <div className="relative" ref={dropdownRef}>
       <button
         className="flex items-center justify-between gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm min-w-[8rem]"
         onClick={() => setIsOpen(!isOpen)}
       >
-        {label}
+        {selected || label}
         <ChevronDownIcon className="w-4 h-4" />
       </button>
 
@@ -36,8 +43,10 @@ function Dropdown({ label, items }) {
           {items.map((item, index) => (
             <button
               key={index}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg"
-              onClick={() => setIsOpen(false)}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 ${
+                index === 0 ? "rounded-t-lg" : ""
+              } ${index === items.length - 1 ? "rounded-b-lg" : ""}`}
+              onClick={() => handleSelect(item)}
             >
               {item}
             </button>

@@ -1,55 +1,79 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "./components/ui/Header";
 import AlertSummary from "./components/ui/AlertSummary";
 import AlertFilters from "./components/ui/AlertFilters";
 import AlertList from "./components/ui/AlertList";
 
+const CATEGORY_MAP = {
+  low_stock: { type: "critical", tags: ["High Priority", "Inventory", "Low Stock"] },
+  shrinkage: { type: "warning", tags: ["High Priority", "Inventory", "Shrinkage"] },
+  near_expiration: { type: "warning", tags: ["Inventory", "Expiration"] },
+  near_end_of_life: { type: "info", tags: ["Inventory", "Lifecycle"] },
+  sufficient_stock: { type: "info", tags: ["Inventory", "OK"] },
+  stocktaking: { type: "warning", tags: ["Inventory", "Stocktaking"] },
+  product_recall: { type: "critical", tags: ["Recall", "Urgent"] },
+  overstock: { type: "info", tags: ["Inventory", "Overstock"] },
+  sales: { type: "info", tags: ["Sales", "Info"] },
+};
+
 function App() {
   const [activeTab, setActiveTab] = useState("All Alerts");
+  const [alerts, setAlerts] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState(null);
+  const [typeFilter, setTypeFilter] = useState(null);
 
-  // Sample data for alerts
-  const alerts = [
-    {
-      id: 1,
-      type: "critical",
-      title: "Low Stock Alert: Product 103",
-      description: "Current stock: 1 units. Minimum required: 5 units.",
-      tags: [
-        { label: "High Priority", color: "high-priority" },
-        { label: "Inventory", color: "inventory" },
-        { label: "Low Stock", color: "low-stock" },
-      ],
-      time: "Apr 4, 5:47 AM",
-      isNew: true,
-    },
-    {
-      id: 2,
-      type: "critical",
-      title: "Low Stock Alert: Product 79",
-      description: "Current stock: 1 units. Minimum required: 10 units.",
-      tags: [
-        { label: "High Priority", color: "high-priority" },
-        { label: "Inventory", color: "inventory" },
-        { label: "Low Stock", color: "low-stock" },
-      ],
-      time: "Apr 4, 5:47 AM",
-      isNew: true,
-    },
-    {
-      id: 3,
-      type: "warning",
-      title: "Inventory Shrinkage: Product 275",
-      description:
-        "Expected: 93 units. Actual: 90 units. Discrepancy: 3 units.",
-      tags: [
-        { label: "High Priority", color: "high-priority" },
-        { label: "Inventory", color: "inventory" },
-        { label: "Shrinkage", color: "shrinkage" },
-      ],
-      time: "Apr 4, 5:47 AM",
-      isNew: true,
-    },
-  ];
+  useEffect(() => {
+    fetch("http://localhost:8000/alerts")
+      .then((res) => res.json())
+      .then((data) => {
+        const parsedAlerts = [];
+
+        for (const category in data.alerts) {
+          const categoryAlerts = data.alerts[category];
+          categoryAlerts.forEach((alertText, index) => {
+            parsedAlerts.push({
+              id: `${category}-${index}`,
+              type: CATEGORY_MAP[category]?.type || "info",
+              title: `${category.replace(/_/g, " ")} alert`,
+              description: alertText,
+              tags: CATEGORY_MAP[category]?.tags.map((label) => ({
+                label,
+                color: label.toLowerCase().replace(/\s+/g, "-"),
+              })) || [],
+              time: new Date().toLocaleString(),
+              isNew: true,
+            });
+          });
+        }
+
+        setAlerts(parsedAlerts);
+      })
+      .catch((err) => console.error("Failed to fetch alerts:", err));
+  }, []);
+
+  const filteredAlerts = alerts.filter((alert) => {
+    const matchesSearch =
+      alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      alert.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesPriority =
+      !priorityFilter || alert.tags.some((tag) => tag.label.toLowerCase().includes(priorityFilter.toLowerCase()));
+
+    const matchesCategory =
+      !categoryFilter || alert.tags.some((tag) => tag.label.toLowerCase().includes(categoryFilter.toLowerCase()));
+
+    const matchesType =
+      !typeFilter || alert.tags.some((tag) => tag.label.toLowerCase().includes(typeFilter.toLowerCase()));
+
+    const matchesTab =
+      activeTab === "All Alerts" ||
+      (activeTab === "Unread" && alert.isNew) ||
+      (activeTab === "Critical" && alert.type === "critical");
+
+    return matchesSearch && matchesPriority && matchesCategory && matchesType && matchesTab;
+  });
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -65,9 +89,17 @@ function App() {
 
         <AlertSummary />
 
-        <AlertFilters activeTab={activeTab} setActiveTab={setActiveTab} />
+        <AlertFilters
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          setPriorityFilter={setPriorityFilter}
+          setCategoryFilter={setCategoryFilter}
+          setTypeFilter={setTypeFilter}
+        />
 
-        <AlertList alerts={alerts} />
+        <AlertList alerts={filteredAlerts} />
       </main>
     </div>
   );
