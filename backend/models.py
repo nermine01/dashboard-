@@ -1,13 +1,12 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Float, DateTime, Date, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-#from pydantic import BaseModel
 import datetime
 
 # Declare Base here
 Base = declarative_base()
 
-# Product Model (previously Inventory)
+# Product Model
 class Product(Base):
     __tablename__ = "products"
     
@@ -19,12 +18,11 @@ class Product(Base):
     lifecycle_status = Column(String(50))
     recall_status = Column(Boolean)
     launch_date = Column(Date)
-    stock_level = Column(Integer, default=0)
-    reorder_point = Column(Integer, nullable=False)
-    max_stock = Column(Integer, nullable=False)
     
     category = relationship("Group4", back_populates="products")
     alerts = relationship("Alert", back_populates="product")
+    product_locations = relationship("ProductLocation", back_populates="product")
+
 
 # Group Models (categories)
 class Group4(Base):
@@ -114,7 +112,7 @@ class Supplier(Base):
     min_capacity_threshold = Column(Integer)
 
 
-# Product Location Model
+# Product Location Model (updated for stock levels per location)
 class ProductLocation(Base):
     __tablename__ = "product_location"
     
@@ -124,7 +122,11 @@ class ProductLocation(Base):
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
     coordination_group_id = Column(Integer)
 
-    product = relationship("Product")
+    stock_level = Column(Integer, default=0)
+    reorder_point = Column(Integer, nullable=False)
+    max_stock = Column(Integer, nullable=False)
+
+    product = relationship("Product", back_populates="product_locations")
     location = relationship("Location")
     supplier = relationship("Supplier")
 

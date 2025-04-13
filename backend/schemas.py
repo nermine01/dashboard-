@@ -1,37 +1,27 @@
-from sqlalchemy import Column, Integer, String, Float, Date, Boolean, ForeignKey
-from sqlalchemy.orm import relationship
-from database import Base  # Import your SQLAlchemy Base class
-import datetime
-from pydantic import BaseModel, field_serializer
-from datetime import date
-from typing import Optional, List
-from pydantic import BaseModel
-from typing import Optional
-from datetime import date
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, Date, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
-from datetime import datetime
+from datetime import date, datetime
+from pydantic import BaseModel, field_serializer
+from typing import Optional, List
 
-# Product Model (previously Product)
+# Product Model
 class Product(Base):
     __tablename__ = "Product"
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)  # Changed from 'name' to match 'product_name'
+    name = Column(String(255), nullable=False)
     category_id = Column(Integer, ForeignKey("groups_4.id"))
     expiration_date = Column(Date)
     end_of_life_date = Column(Date)
     lifecycle_status = Column(String(50))
     recall_status = Column(Boolean)
     launch_date = Column(Date)
-    stock_level = Column(Integer, default=0)  # Added for stock tracking
-    reorder_point = Column(Integer, nullable=False)  # Added for reorder threshold
-    max_stock = Column(Integer, nullable=False)  # Added for max stock
     
     category = relationship("Group4", back_populates="products")
     alerts = relationship("Alert", back_populates="Product")
+    product_locations = relationship("ProductLocation", back_populates="Product")
 
 
 # Group Models (categories)
@@ -43,7 +33,7 @@ class Group4(Base):
     parent_id = Column(Integer, ForeignKey("groups_4.id"))
     
     parent = relationship("Group4", remote_side=[id])
-    products = relationship("Product", back_populates="category")  # Changed to Product from Product
+    products = relationship("Product", back_populates="category")
 
 class Group3(Base):
     __tablename__ = "groups_3"
@@ -132,7 +122,11 @@ class ProductLocation(Base):
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
     coordination_group_id = Column(Integer)
 
-    Product = relationship("Product")
+    stock_level = Column(Integer, default=0)
+    reorder_point = Column(Integer, nullable=False)
+    max_stock = Column(Integer, nullable=False)
+
+    Product = relationship("Product", back_populates="product_locations")
     location = relationship("Location")
     supplier = relationship("Supplier")
 
@@ -229,8 +223,6 @@ class Campaign(Base):
     promotion_start_date = Column(Date)
 
 
-
-
 # Alert Model
 class Alert(Base):
     __tablename__ = "alerts"
@@ -239,13 +231,16 @@ class Alert(Base):
     Product_id = Column(Integer, ForeignKey("Product.id"))
     alert_type = Column(String, nullable=False)
     message = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=func.now())  # Corrected this line
+    timestamp = Column(DateTime, default=func.now())
+
     Product = relationship("Product", back_populates="alerts")
 
 
+# =======================
+# Pydantic Schemas
+# =======================
 
-
-# Product Schema for Creation (Request Body)
+# Product Create Schema
 class ProductCreate(BaseModel):
     name: str
     category_id: int
@@ -254,14 +249,12 @@ class ProductCreate(BaseModel):
     lifecycle_status: str
     recall_status: bool
     launch_date: date
-    stock_level: int
-    reorder_point: int
-    max_stock: int
 
     class Config:
-        from_attributes = True  # Use 'from_attributes' for compatibility with SQLAlchemy models
+        from_attributes = True
 
-# Product Schema for Response (Output Body)
+
+# Product Response Schema
 class ProductResponse(BaseModel):
     id: int
     name: str
@@ -271,15 +264,12 @@ class ProductResponse(BaseModel):
     lifecycle_status: str
     recall_status: bool
     launch_date: date
-    stock_level: int
-    reorder_point: int
-    max_stock: int
 
     class Config:
-        from_attributes = True  # Use 'from_attributes' for compatibility with SQLAlchemy models
+        from_attributes = True
 
 
-# For single alert response
+# Alert Base Schema
 class AlertBase(BaseModel):
     product_id: int
     alert_type: str
@@ -287,44 +277,52 @@ class AlertBase(BaseModel):
     timestamp: Optional[datetime] = None
 
     class Config:
-        orm_mode = True  # Enable ORM mode for SQLAlchemy support
-        arbitrary_types_allowed = True  # Allow arbitrary types like SQLAlchemy models
+        orm_mode = True
+        arbitrary_types_allowed = True
 
-# For multiple alerts response
+
+# Alerts Response Schema
 class AlertsResponse(BaseModel):
-    alerts: List[AlertBase]  # A list of AlertBase models
+    alerts: List[AlertBase]
 
     class Config:
-        orm_mode = True  # Enable ORM mode for this as well
-        arbitrary_types_allowed = True  # Allow arbitrary types for lists as well
+        orm_mode = True
+        arbitrary_types_allowed = True
 
 
+# Product Base Schema for Shared Fields
 class ProductBase(BaseModel):
     name: str
     category_id: int
-    expiration_date: Optional[date]  # Optional to handle null values
+    expiration_date: Optional[date]
     end_of_life_date: Optional[date]
     lifecycle_status: Optional[str]
     recall_status: Optional[bool]
     launch_date: Optional[date]
+
+    class Config:
+        from_attributes = True
+
+    @field_serializer('expiration_date', 'end_of_life_date', 'launch_date')
+    def serialize_date(self, v: Optional[date]) -> Optional[str]:
+        return v.isoformat() if isinstance(v, date) else v
+
+
+class ProductLocationCreate(BaseModel):
+    product_id: int
+    location_id: int
+    supplier_id: int
+    coordination_group_id: Optional[int]
     stock_level: int
     reorder_point: int
     max_stock: int
 
     class Config:
-        from_attributes = True  # Enable compatibility with SQLAlchemy models
-
-    # Serializer to convert date to ISO 8601 string format
-    @field_serializer('expiration_date', 'end_of_life_date', 'launch_date')
-    def serialize_date(self, v: Optional[date]) -> Optional[str]:
-        if isinstance(v, date):
-            return v.isoformat()  # Convert date to string in 'YYYY-MM-DD' format
-        return v
+        from_attributes = True
 
 
-class ProductResponse(ProductBase):
+class ProductLocationResponse(ProductLocationCreate):
     id: int
 
     class Config:
-        from_attributes = True  # Enable compatibility with SQLAlchemy models
-
+        from_attributes = True

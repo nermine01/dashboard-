@@ -1,11 +1,8 @@
 from fastapi import FastAPI, Depends, HTTPException
 from database import SessionLocal, engine, get_db
-from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 import models, schemas, crud
-from database import SessionLocal, engine
 from fastapi.middleware.cors import CORSMiddleware
-
 import logging
 import pdb  # Python Debugger
 from typing import List
@@ -40,9 +37,10 @@ def read_products(db: Session = Depends(get_db)):
     return products
 
 
-
+# FastAPI route to get alerts
 @app.get("/alerts")
 def get_all_alerts(db: Session = Depends(get_db)):
+    # Create a dictionary of alerts categorized by alert type
     all_alerts = {
         "overstock": check_overstock(db),
         "low_stock": check_low_stock(db),
