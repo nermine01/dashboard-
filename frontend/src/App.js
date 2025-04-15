@@ -38,10 +38,11 @@ function App() {
               type: CATEGORY_MAP[category]?.type || "info",
               title: `${category.replace(/_/g, " ")} alert`,
               description: alertText,
-              tags: CATEGORY_MAP[category]?.tags.map((label) => ({
-                label,
-                color: label.toLowerCase().replace(/\s+/g, "-"),
-              })) || [],
+              tags:
+                CATEGORY_MAP[category]?.tags.map((label) => ({
+                  label,
+                  color: label.toLowerCase().replace(/\s+/g, "-"),
+                })) || [],
               time: new Date().toLocaleString(),
               isNew: true,
             });
@@ -53,31 +54,69 @@ function App() {
       .catch((err) => console.error("Failed to fetch alerts:", err));
   }, []);
 
+  // Count alerts by categories
+  const categoryCounts = {
+    critical: alerts.filter((alert) => alert.type === "critical").length,
+    inventory: alerts.filter((alert) =>
+      alert.tags.some((tag) => tag.label.toLowerCase().includes("inventory"))
+    ).length,
+    sales: alerts.filter((alert) =>
+      alert.tags.some((tag) => tag.label.toLowerCase().includes("sales"))
+    ).length,
+    other: alerts.filter((alert) =>
+      !alert.tags.some((tag) =>
+        ["inventory", "sales"].includes(tag.label.toLowerCase())
+      )
+    ).length,
+  };
+
+  // Count for notifications
+  const criticalCount = categoryCounts.critical;
+
+  // Get critical alerts
+  const criticalAlerts = alerts.filter((alert) => alert.type === "critical");
+
+  // Filters
   const filteredAlerts = alerts.filter((alert) => {
     const matchesSearch =
       alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       alert.description.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesPriority =
-      !priorityFilter || alert.tags.some((tag) => tag.label.toLowerCase().includes(priorityFilter.toLowerCase()));
+      !priorityFilter ||
+      alert.tags.some((tag) =>
+        tag.label.toLowerCase().includes(priorityFilter.toLowerCase())
+      );
 
     const matchesCategory =
-      !categoryFilter || alert.tags.some((tag) => tag.label.toLowerCase().includes(categoryFilter.toLowerCase()));
+      !categoryFilter ||
+      alert.tags.some((tag) =>
+        tag.label.toLowerCase().includes(categoryFilter.toLowerCase())
+      );
 
     const matchesType =
-      !typeFilter || alert.tags.some((tag) => tag.label.toLowerCase().includes(typeFilter.toLowerCase()));
+      !typeFilter ||
+      alert.tags.some((tag) =>
+        tag.label.toLowerCase().includes(typeFilter.toLowerCase())
+      );
 
     const matchesTab =
       activeTab === "All Alerts" ||
       (activeTab === "Unread" && alert.isNew) ||
       (activeTab === "Critical" && alert.type === "critical");
 
-    return matchesSearch && matchesPriority && matchesCategory && matchesType && matchesTab;
+    return (
+      matchesSearch &&
+      matchesPriority &&
+      matchesCategory &&
+      matchesType &&
+      matchesTab
+    );
   });
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      <Header />
+      <Header criticalCount={criticalCount} criticalAlerts={criticalAlerts} />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
         <div className="mb-8">
@@ -87,7 +126,7 @@ function App() {
           </p>
         </div>
 
-        <AlertSummary />
+        <AlertSummary categoryCounts={categoryCounts} />
 
         <AlertFilters
           activeTab={activeTab}

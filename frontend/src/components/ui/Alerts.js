@@ -13,7 +13,7 @@ import {
   MoreHorizontal,
 } from "lucide-react"
 
-
+//import Header from "./Header.js";
 
 // Alert card component
 const AlertCard = ({ alert, onMarkAsRead, onDismiss }) => {
@@ -542,7 +542,7 @@ const Alerts = () => {
     inventory: alerts.filter((alert) => alert.category === "inventory").length,
     sales: alerts.filter((alert) => alert.category === "sales").length,
   }
-
+  console.log(categoryCounts);
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -595,6 +595,7 @@ const Alerts = () => {
           </div>
         </div>
       </header>
+
 
       <main className="container px-4 py-6 mx-auto">
         <div className="flex flex-col gap-6">
