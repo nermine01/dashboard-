@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/ui/Header";
 import AlertSummary from "./components/ui/AlertSummary";
 import AlertFilters from "./components/ui/AlertFilters";
 import AlertList from "./components/ui/AlertList";
+import AlertDetails from "./pages/AlertDetails";
 
 const CATEGORY_MAP = {
   low_stock: { type: "critical", tags: ["High Priority", "Inventory", "Low Stock"] },
@@ -13,7 +15,7 @@ const CATEGORY_MAP = {
   stocktaking: { type: "warning", tags: ["Inventory", "Stocktaking"] },
   product_recall: { type: "critical", tags: ["Recall", "Urgent"] },
   overstock: { type: "info", tags: ["Inventory", "Overstock"] },
-  sales: { type: "info", tags: ["Sales", "Info"] },
+  forecast: { type: "info", tags: ["forecast", "Info"] },
 };
 
 function App() {
@@ -45,6 +47,9 @@ function App() {
                 })) || [],
               time: new Date().toLocaleString(),
               isNew: true,
+              currentStock: Math.floor(Math.random() * 100), // placeholder
+              threshold: 20,
+              location: "Warehouse A",
             });
           });
         }
@@ -54,29 +59,24 @@ function App() {
       .catch((err) => console.error("Failed to fetch alerts:", err));
   }, []);
 
-  // Count alerts by categories
   const categoryCounts = {
     critical: alerts.filter((alert) => alert.type === "critical").length,
     inventory: alerts.filter((alert) =>
       alert.tags.some((tag) => tag.label.toLowerCase().includes("inventory"))
     ).length,
-    sales: alerts.filter((alert) =>
-      alert.tags.some((tag) => tag.label.toLowerCase().includes("sales"))
+    forecast: alerts.filter((alert) =>
+      alert.tags.some((tag) => tag.label.toLowerCase().includes("forecast"))
     ).length,
     other: alerts.filter((alert) =>
       !alert.tags.some((tag) =>
-        ["inventory", "sales"].includes(tag.label.toLowerCase())
+        ["inventory", "forecast"].includes(tag.label.toLowerCase())
       )
     ).length,
   };
 
-  // Count for notifications
   const criticalCount = categoryCounts.critical;
-
-  // Get critical alerts
   const criticalAlerts = alerts.filter((alert) => alert.type === "critical");
 
-  // Filters
   const filteredAlerts = alerts.filter((alert) => {
     const matchesSearch =
       alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,32 +115,45 @@ function App() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Header criticalCount={criticalCount} criticalAlerts={criticalAlerts} />
+    <Router>
+      <div className="min-h-screen bg-gray-100 flex flex-col">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                <Header criticalCount={criticalCount} criticalAlerts={criticalAlerts} />
+                <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
+                  <div className="mb-8">
+                    <h2 className="text-3xl font-bold bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">
+                      Alerts Dashboard
+                    </h2>
+                    <p className="text-gray-500">
+                      Monitor and manage all retail alerts in one place.
+                    </p>
+                  </div>
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">Alerts Dashboard</h2>
-          <p className="text-gray-500">
-            Monitor and manage all retail alerts in one place.
-          </p>
-        </div>
+                  <AlertSummary categoryCounts={categoryCounts} />
 
-        <AlertSummary categoryCounts={categoryCounts} />
+                  <AlertFilters
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    setPriorityFilter={setPriorityFilter}
+                    setCategoryFilter={setCategoryFilter}
+                    setTypeFilter={setTypeFilter}
+                  />
 
-        <AlertFilters
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          setPriorityFilter={setPriorityFilter}
-          setCategoryFilter={setCategoryFilter}
-          setTypeFilter={setTypeFilter}
-        />
-
-        <AlertList alerts={filteredAlerts} />
-      </main>
-    </div>
+                  <AlertList alerts={filteredAlerts} />
+                </main>
+              </>
+            }
+          />
+          <Route path="/alerts/:id" element={<AlertDetails alerts={alerts} />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

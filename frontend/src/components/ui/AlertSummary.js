@@ -55,11 +55,12 @@ const AlertSummary = ({ categoryCounts }) => {
         description="Stock level notifications"
         color="#f59e0b"
       />
+    
       <SummaryCard
         Icon={ShoppingBagIcon}
         title="Master Data"
         count={categoryCounts.master || 0}
-        description="Sales performance insights"
+        description="forecast performance insights"
         color="#10b981"
       />
     </div>
