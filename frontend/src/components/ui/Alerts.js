@@ -632,40 +632,43 @@ const Alerts = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow border">
-            <div className="mb-4 border-b">
-              <div className="flex flex-wrap -mb-px">
-                <button
-                  className={`inline-block p-4 border-b-2 ${
-                    activeTab === "all"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent hover:text-gray-600 hover:border-gray-300"
-                  }`}
-                  onClick={() => setActiveTab("all")}
-                >
-                  All Alerts
-                </button>
-                <button
-                  className={`inline-block p-4 border-b-2 ${
-                    activeTab === "unread"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent hover:text-gray-600 hover:border-gray-300"
-                  }`}
-                  onClick={() => setActiveTab("unread")}
-                >
-                  Unread
-                </button>
-                <button
-                  className={`inline-block p-4 border-b-2 ${
-                    activeTab === "critical"
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent hover:text-gray-600 hover:border-gray-300"
-                  }`}
-                  onClick={() => setActiveTab("critical")}
-                >
-                  Critical
-                </button>
-              </div>
-            </div>
+          <div className="bg-white rounded-lg shadow border">
+  <div className="p-4 border-b">
+    <div className="bg-[#f0f7f9] p-1 rounded-md inline-flex flex-wrap gap-2">
+      <button
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          activeTab === "all"
+            ? "bg-gradient-to-r from-[#3eadc1] to-[#21c1de] text-white shadow-md"
+            : "text-[#595959]"
+        }`}
+        onClick={() => setActiveTab("all")}
+      >
+        All Alerts
+      </button>
+      <button
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          activeTab === "unread"
+            ? "bg-gradient-to-r from-[#3eadc1] to-[#21c1de] text-white shadow-md"
+            : "text-[#595959]"
+        }`}
+        onClick={() => setActiveTab("unread")}
+      >
+        Unread
+      </button>
+      <button
+        className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+          activeTab === "critical"
+            ? "bg-gradient-to-r from-[#c13e6c] to-[#d85c87] text-white shadow-md"
+            : "text-[#595959]"
+        }`}
+        onClick={() => setActiveTab("critical")}
+      >
+        Critical
+      </button>
+    </div>
+  </div>
+</div>
+
 
             <div className="p-4">
               <div className="flex flex-col items-start justify-between gap-4 mb-4 md:flex-row md:items-center">

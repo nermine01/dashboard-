@@ -115,12 +115,12 @@ function App() {
   });
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <Header criticalCount={criticalCount} criticalAlerts={criticalAlerts} />
 
       <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
         <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold">Alerts Dashboard</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">Alerts Dashboard</h2>
           <p className="text-gray-500">
             Monitor and manage all retail alerts in one place.
           </p>

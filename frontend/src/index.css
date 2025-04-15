@@ -13,3 +13,16 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
 }
+:root {
+  --color-teal: #3eadc1;
+  --color-dark-teal: #2b7886;
+  --color-rose: #c13e6c;
+  --color-navy: #041f3a;
+  --color-blue: #0a5096;
+  --color-orange: #ffa641;
+  --color-gray: #595959;
+  --color-dark-green: #18434a;
+  --color-cyan: #21c1de;
+  --color-white: #ffffff;
+  --color-light-gray: #d9d9d9;
+}
