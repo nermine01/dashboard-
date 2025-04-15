@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   Search,
@@ -12,11 +13,14 @@ import {
   Calendar,
   MoreHorizontal,
 } from "lucide-react"
+import { Link } from "react-router-dom";
+
 
 //import Header from "./Header.js";
 
 // Alert card component
 const AlertCard = ({ alert, onMarkAsRead, onDismiss }) => {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
 
@@ -41,7 +45,7 @@ const AlertCard = ({ alert, onMarkAsRead, onDismiss }) => {
         return <Package className="w-5 h-5" />
       case "product_recall":
         return <AlertTriangle className="w-5 h-5" />
-      case "sales":
+      case "forecast":
         return <ShoppingCart className="w-5 h-5" />
       default:
         return <Info className="w-5 h-5" />
@@ -65,7 +69,7 @@ const AlertCard = ({ alert, onMarkAsRead, onDismiss }) => {
     switch (alert.category) {
       case "inventory":
         return "bg-purple-100 text-purple-600"
-      case "sales":
+      case "forecast":
         return "bg-blue-100 text-blue-600"
       case "customer":
         return "bg-green-100 text-green-600"
@@ -94,7 +98,7 @@ const AlertCard = ({ alert, onMarkAsRead, onDismiss }) => {
         return "bg-purple-100 text-purple-600"
       case "product_recall":
         return "bg-red-100 text-red-600"
-      case "sales":
+      case "forecast":
         return "bg-indigo-100 text-indigo-600"
       default:
         return "bg-gray-100 text-gray-600"
@@ -164,11 +168,11 @@ const AlertCard = ({ alert, onMarkAsRead, onDismiss }) => {
           <div className="flex items-start gap-2">
             {alert.details && (
               <button
-                className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
-                onClick={() => setExpanded(!expanded)}
-              >
-                {expanded ? "Show less" : "Show more"}
-              </button>
+              className="px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded"
+              onClick={() => navigate(`/alerts/${alert.id}`)}
+            >
+              Show more
+            </button>
             )}
             <div className="relative">
               <button
@@ -237,7 +241,7 @@ const Alerts = () => {
       sufficient_stock: { category: "inventory", priority: "low" },
       stocktaking: { category: "inventory", priority: "medium" },
       product_recall: { category: "security", priority: "high" },
-      sales: { category: "sales", priority: "medium" },
+      forecast: { category: "forecast", priority: "medium" },
     }
 
     // Process each alert type
@@ -302,8 +306,8 @@ const Alerts = () => {
         return `Stocktaking Required: ${item.location || "Location"}`
       case "product_recall":
         return `Product Recall: ${item.product_name || "Product"}`
-      case "sales":
-        return `Sales Alert: ${item.product_name || "Product"}`
+      case "forecast":
+        return `forecast Alert: ${item.product_name || "Product"}`
       default:
         return `${alertType.charAt(0).toUpperCase() + alertType.slice(1)} Alert`
     }
@@ -327,8 +331,8 @@ const Alerts = () => {
         return `Last stocktake: ${item.last_stocktake || "Unknown"}. Due: ${item.due_date || "Soon"}.`
       case "product_recall":
         return `Recall reason: ${item.reason || "Quality issue"}. Affected units: ${item.affected_units || 0}.`
-      case "sales":
-        return `${item.description || "Sales trend detected"} for ${item.product_name || "product"}.`
+      case "forecast":
+        return `${item.description || "forecast trend detected"} for ${item.product_name || "product"}.`
       default:
         return JSON.stringify(item)
     }
@@ -344,7 +348,7 @@ const Alerts = () => {
       case "shrinkage":
         return `Inventory shrinkage detected. This may be due to theft, damage, administrative errors, or supplier fraud. Last inventory check: ${item.last_check || "Unknown"}.`
       case "near_expiration":
-        return `Products will expire on ${item.expiration_date || "Unknown"}. Consider discounting these items to increase sales velocity.`
+        return `Products will expire on ${item.expiration_date || "Unknown"}. Consider discounting these items to increase forecast velocity.`
       case "near_end_of_life":
         return `This product is being phased out. Last order date: ${item.last_order_date || "Unknown"}. Consider clearance pricing.`
       case "sufficient_stock":
@@ -353,7 +357,7 @@ const Alerts = () => {
         return `Regular inventory count is required for this location. Previous discrepancy rate: ${item.discrepancy_rate || "0%"}.`
       case "product_recall":
         return `Recall initiated on ${item.recall_date || "Unknown"}. Return process: ${item.return_process || "Contact supplier"}. Compensation: ${item.compensation || "To be determined"}.`
-      case "sales":
+      case "forecast":
         return `${item.details || "No additional details available."}`
       default:
         return ""
@@ -369,7 +373,7 @@ const Alerts = () => {
       case "shrinkage":
         return "Investigate the cause of inventory discrepancy and update records."
       case "near_expiration":
-        return "Apply discounts to increase sales velocity before expiration."
+        return "Apply discounts to increase forecast velocity before expiration."
       case "near_end_of_life":
         return "Plan for clearance pricing and replacement product."
       case "sufficient_stock":
@@ -378,7 +382,7 @@ const Alerts = () => {
         return "Schedule inventory count for this location."
       case "product_recall":
         return "Remove affected products from shelves and contact customers."
-      case "sales":
+      case "forecast":
         return item.action_required || null
       default:
         return null
@@ -540,7 +544,7 @@ const Alerts = () => {
   const categoryCounts = {
     critical: alerts.filter((alert) => alert.priority === "high").length,
     inventory: alerts.filter((alert) => alert.category === "inventory").length,
-    sales: alerts.filter((alert) => alert.category === "sales").length,
+    forecast: alerts.filter((alert) => alert.category === "forecast").length,
   }
   console.log(categoryCounts);
   if (loading) {
@@ -623,11 +627,11 @@ const Alerts = () => {
             </div>
             <div className="bg-white p-4 rounded-lg shadow border">
               <div className="flex flex-row items-center justify-between pb-2">
-                <h3 className="text-sm font-medium">Sales Alerts</h3>
+                <h3 className="text-sm font-medium">forecast Alerts</h3>
                 <ShoppingCart className="w-4 h-4 text-green-500" />
               </div>
-              <div className="text-2xl font-bold">{categoryCounts.sales}</div>
-              <p className="text-xs text-gray-500">Sales performance insights</p>
+              <div className="text-2xl font-bold">{categoryCounts.forecast}</div>
+              <p className="text-xs text-gray-500">forecast performance insights</p>
             </div>
           </div>
 
@@ -702,7 +706,7 @@ const Alerts = () => {
                   >
                     <option value="">All Categories</option>
                     <option value="inventory">Inventory</option>
-                    <option value="sales">Sales</option>
+                    <option value="forecast">forecast</option>
                     <option value="customer">Customer</option>
                     <option value="security">Security</option>
                   </select>

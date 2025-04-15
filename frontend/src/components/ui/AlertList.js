@@ -1,9 +1,11 @@
 import { AlertCircleIcon, AlertTriangleIcon, MoreVerticalIcon } from "./Icons";
+import { useNavigate } from "react-router-dom";
+
 
 function AlertItem({ alert }) {
-  const { type, title, description, tags, time, isNew } = alert;
+  const navigate = useNavigate();
+  const { id, type, title, description, tags, time, isNew } = alert;
 
-  // Determine which icon to use based on alert type
   const getIcon = () => {
     if (type === "critical") {
       return <AlertCircleIcon className="w-6 h-6 text-red-500" />;
@@ -13,7 +15,6 @@ function AlertItem({ alert }) {
     return null;
   };
 
-  // Map tag colors to Tailwind classes
   const getTagClasses = (color) => {
     switch (color) {
       case "high-priority":
@@ -66,7 +67,10 @@ function AlertItem({ alert }) {
         </div>
 
         <div className="flex sm:flex-col items-end gap-2 w-full sm:w-auto">
-          <button className="text-sm text-gray-500 hover:bg-gray-100 px-2 py-1 rounded-md">
+          <button
+            className="text-sm text-blue-600 hover:underline"
+            onClick={() => navigate(`/alerts/${id}`)}
+          >
             Show more
           </button>
 

@@ -43,7 +43,7 @@ function AlertFilters({
 
         <div className="flex gap-2 flex-wrap">
           <Dropdown label="Priority" items={["High", "Medium", "Low"]} onSelect={setPriorityFilter} />
-          <Dropdown label="Category" items={["Inventory", "Sales", "Security"]} onSelect={setCategoryFilter} />
+          <Dropdown label="Category" items={["Inventory", "Forecast", "Replenishment","Data Input"]} onSelect={setCategoryFilter} />
           <Dropdown label="Alert Type" items={["Low Stock", "Shrinkage", "Expiration", "Lifecycle", "Stocktaking", "Recall", "Overstock", "OK"]} onSelect={setTypeFilter} />
         </div>
       </div>
