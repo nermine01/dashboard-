@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 import models, schemas
+from models import Alert  # assuming SQLAlchemy model
 
 # Create Product
 def create_product(db: Session, product: schemas.ProductCreate):
@@ -69,4 +70,6 @@ def create_product_location(db: Session, product_id: int, location_id: int, supp
     db.commit()
     db.refresh(db_product_location)
     return db_product_location
+
+
 
