@@ -31,10 +31,20 @@ function App() {
       .then((res) => res.json())
       .then((data) => {
         const parsedAlerts = [];
-
+  
         for (const category in data.alerts) {
           const categoryAlerts = data.alerts[category];
           categoryAlerts.forEach((alertText, index) => {
+            const stockMatch = alertText.match(/Stock:\s*(\d+)/i);
+            const thresholdMatch = alertText.match(/\((?:Max|Reorder Point|Ideal):\s*(\d+)\)/i);
+            const locationMatch = alertText.match(/at (.*?) (?:is|has|detected)/i);
+            const productMatch = alertText.match(/ALERT: (.*?) at/i);
+  
+            const currentStock = stockMatch ? parseInt(stockMatch[1]) : 0;
+            const threshold = thresholdMatch ? parseInt(thresholdMatch[1]) : 0;
+            const location = locationMatch ? locationMatch[1] : "Unknown";
+            const productName = productMatch ? productMatch[1] : "Unknown";
+  
             parsedAlerts.push({
               id: `${category}-${index}`,
               type: CATEGORY_MAP[category]?.type || "info",
@@ -47,17 +57,18 @@ function App() {
                 })) || [],
               time: new Date().toLocaleString(),
               isNew: true,
-              currentStock: Math.floor(Math.random() * 100), // placeholder
-              threshold: 20,
-              location: "Warehouse A",
+              currentStock,
+              threshold,
+              location,
+              productName,
             });
           });
         }
-
+  
         setAlerts(parsedAlerts);
-      })
-      .catch((err) => console.error("Failed to fetch alerts:", err));
+      });
   }, []);
+  
 
   const categoryCounts = {
     critical: alerts.filter((alert) => alert.type === "critical").length,

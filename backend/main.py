@@ -55,6 +55,7 @@ def get_all_alerts(db: Session = Depends(get_db)):
     return JSONResponse(content={"alerts": all_alerts})
 
 
+
 # Run the application through Python command (no need for command line uvicorn)
 if __name__ == "__main__":
     import uvicorn
