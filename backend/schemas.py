@@ -326,3 +326,18 @@ class ProductLocationResponse(ProductLocationCreate):
 
     class Config:
         from_attributes = True
+
+class ThresholdUpdate(BaseModel):
+    threshold: float
+
+# from typing import List, Dict
+
+
+# class AlertItem(BaseModel):
+#     product_id: int
+#     alert_type: str
+#     message: str
+#     timestamp: datetime
+
+# class AlertResponse(BaseModel):
+#     alerts: Dict[str, List[AlertItem]]

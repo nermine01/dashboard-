@@ -1,46 +1,39 @@
 from fastapi import FastAPI, Depends, HTTPException
-from database import SessionLocal, engine, get_db
-from sqlalchemy.orm import Session
-import models, schemas, crud
 from fastapi.middleware.cors import CORSMiddleware
-import logging
-import pdb  # Python Debugger
-from typing import List
-
-from alerts import check_overstock, check_low_stock, check_stock_shrinkage, check_near_expiration, \
-    check_near_end_of_life, check_sufficient_stock, check_stocktaking, check_product_recall, check_sales_alert
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import Session
+from typing import List
+import re
+import logging
+import models, schemas, crud
+from database import get_db
+from schemas import ThresholdUpdate
+
+from alerts import (
+    check_overstock,
+    check_low_stock,
+    check_stock_shrinkage,
+    check_near_expiration,
+    check_near_end_of_life,
+    check_sufficient_stock,
+    check_stocktaking,
+    check_product_recall,
+    check_sales_alert
+)
 
 app = FastAPI()
 
-# Add CORS middleware to allow requests from localhost:3000 (React frontend)
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # React frontend URL
+    allow_origins=["http://localhost:3000"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-
-# Example: Route to create a product
-@app.post("/add-product/", response_model=schemas.ProductResponse)
-def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
-    db_product = crud.create_product(db=db, product=product)
-    return db_product  # This will be automatically converted to Pydantic response model
-
-
-# FastAPI route to get products
-@app.get("/products/", response_model=List[schemas.ProductResponse])
-def read_products(db: Session = Depends(get_db)):
-    products = crud.get_products(db)
-    return products
-
-
-# FastAPI route to get alerts
 @app.get("/alerts")
 def get_all_alerts(db: Session = Depends(get_db)):
-    # Create a dictionary of alerts categorized by alert type
     all_alerts = {
         "overstock": check_overstock(db),
         "low_stock": check_low_stock(db),
@@ -53,6 +46,34 @@ def get_all_alerts(db: Session = Depends(get_db)):
         "sales": check_sales_alert(db)
     }
     return JSONResponse(content={"alerts": all_alerts})
+
+
+@app.put("/alerts/{alert_id}/update-threshold")
+def update_embedded_threshold(alert_id: int, update: ThresholdUpdate, db: Session = Depends(get_db)):
+    alert = db.query(models.Alert).filter(models.Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail="Alert not found")
+
+    alert_type = alert.alert_type.lower()
+
+    if "overstock" in alert_type:
+        label = "Max"
+    elif "understock" in alert_type or "low_stock" in alert_type or "low stock" in alert_type:
+        label = "Reorder Point"
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported alert type")
+
+    pattern = rf"\({label}:\s*\d+\)"
+    new_part = f"({label}: {int(update.threshold)})"
+
+    new_message = re.sub(pattern, new_part, alert.message)
+    if new_message == alert.message:
+        raise HTTPException(status_code=400, detail=f"No matching {label} threshold found in message")
+
+    alert.message = new_message
+    db.commit()
+    db.refresh(alert)
+    return {"message": f"{label} threshold updated", "new_message": alert.message}
 
 
 
