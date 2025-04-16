@@ -1,6 +1,6 @@
 /* Base styles */
 :root {
-    --color-background: #ffffff;
+    --color-background: #e64a4a;
     --color-foreground: #1a1a1a;
     --color-muted: #6b7280;
     --color-border: #e5e7eb;
@@ -11,7 +11,7 @@
     --color-inventory: #f59e0b;
     --color-sales: #10b981;
     --color-warning: #f59e0b;
-    --color-high-priority-bg: #fee2e2;
+    --color-high-priority-bg: #741e1e;
     --color-high-priority-text: #b91c1c;
     --color-inventory-bg: #e0e7ff;
     --color-inventory-text: #4338ca;

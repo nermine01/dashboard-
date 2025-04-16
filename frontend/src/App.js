@@ -30,7 +30,7 @@ const CATEGORY_MAP = {
   stocktaking: { type: "warning", tags: ["Inventory", "Stocktaking"] },
   product_recall: { type: "critical", tags: ["Recall", "Urgent"] },
   overstock: { type: "info", tags: ["Inventory", "Overstock"] },
-  forecast: { type: "info", tags: ["forecast", "Info"] },
+  forecast: { type: "critical", tags: ["High Priority","forecast"] },
 };
 
 function App() {

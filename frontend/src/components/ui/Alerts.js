@@ -240,7 +240,7 @@ const Alerts = () => {
       sufficient_stock: { category: "inventory", priority: "low" },
       stocktaking: { category: "inventory", priority: "medium" },
       product_recall: { category: "security", priority: "high" },
-      forecast: { category: "forecast", priority: "medium" },
+      forecast: { category: "forecast", priority: "high" },
     }
 
     // Process each alert type
