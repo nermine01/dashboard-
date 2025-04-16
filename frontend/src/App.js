@@ -1,10 +1,25 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Header from "./components/ui/Header";
 import AlertSummary from "./components/ui/AlertSummary";
 import AlertFilters from "./components/ui/AlertFilters";
 import AlertList from "./components/ui/AlertList";
 import AlertDetails from "./pages/AlertDetails";
+
+
+const getReadAlertsFromStorage = () => {
+  const stored = localStorage.getItem("readAlerts");
+  return stored ? JSON.parse(stored) : [];
+};
+
+const saveReadAlertToStorage = (id) => {
+  const readAlerts = getReadAlertsFromStorage();
+  if (!readAlerts.includes(id)) {
+    readAlerts.push(id);
+    localStorage.setItem("readAlerts", JSON.stringify(readAlerts));
+  }
+};
+
 
 const CATEGORY_MAP = {
   low_stock: { type: "critical", tags: ["High Priority", "Inventory", "Low Stock"] },
@@ -30,24 +45,26 @@ function App() {
     fetch("http://localhost:8000/alerts")
       .then((res) => res.json())
       .then((data) => {
+        const readAlerts = getReadAlertsFromStorage();
         const parsedAlerts = [];
-  
+
+
         for (const category in data.alerts) {
           const categoryAlerts = data.alerts[category];
-  
+
           categoryAlerts.forEach((alertObj) => {
             const alertText = alertObj.message;
-  
+
             const stockMatch = alertText.match(/Stock:\s*(\d+)/i);
             const thresholdMatch = alertText.match(/\((?:Max|Reorder Point|Ideal):\s*(\d+)\)/i);
             const locationMatch = alertText.match(/at (.*?) (?:is|has|detected)/i);
             const productMatch = alertText.match(/ALERT: (.*?) at/i);
-  
+
             const currentStock = stockMatch ? parseInt(stockMatch[1]) : 0;
             const threshold = thresholdMatch ? parseInt(thresholdMatch[1]) : 0;
             const location = locationMatch ? locationMatch[1] : "Unknown";
             const productName = productMatch ? productMatch[1] : "Unknown";
-  
+
             parsedAlerts.push({
               id: alertObj.id,
               type: CATEGORY_MAP[category]?.type || "info",
@@ -59,7 +76,7 @@ function App() {
                   color: label.toLowerCase().replace(/\s+/g, "-"),
                 })) || [],
               time: new Date(alertObj.timestamp).toLocaleString(),
-              isNew: true,
+              isNew: !readAlerts.includes(alertObj.id),
               currentStock,
               threshold,
               location,
@@ -68,15 +85,13 @@ function App() {
             });
           });
         }
-  
+
         setAlerts(parsedAlerts);
       })
       .catch((error) => {
         console.error("Error fetching alerts:", error);
       });
   }, []);
-  
-  
 
   const categoryCounts = {
     critical: alerts.filter((alert) => alert.type === "critical").length,
@@ -119,7 +134,7 @@ function App() {
         tag.label.toLowerCase().includes(typeFilter.toLowerCase())
       );
 
-      const matchesTab =
+    const matchesTab =
       activeTab === "All Alerts" ||
       (activeTab === "Unread" && alert.isNew) ||
       (activeTab === "Read" && !alert.isNew) ||
@@ -139,10 +154,12 @@ function App() {
       alert.id === id ? { ...alert, isNew: !isRead } : alert
     );
     setAlerts(updatedAlerts);
+  
+    if (isRead) {
+      saveReadAlertToStorage(id);
+    }
   };
   
-
-
   return (
     <Router>
       <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -174,70 +191,54 @@ function App() {
                     setTypeFilter={setTypeFilter}
                   />
 
-<div className="grid gap-4 mt-6">
-  {filteredAlerts.length === 0 ? (
-    <div className="text-gray-500">No alerts to show.</div>
-  ) : (
-    filteredAlerts.map((alert) => (
-      <div
-        key={alert.id}
-        className={`bg-white rounded-xl shadow p-4 border-l-4 ${
-          alert.type === "critical"
-            ? "border-red-500"
-            : alert.type === "warning"
-            ? "border-yellow-400"
-            : "border-blue-400"
-        }`}
-      >
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-semibold">{alert.title}</h3>
-            <p className="text-gray-600">{alert.description}</p>
-            <div className="text-sm text-gray-500 mt-1">{alert.time}</div>
-            <div className="flex flex-wrap mt-2 gap-2">
-              {alert.tags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-800"
-                >
-                  {tag.label}
-                </span>
-              ))}
-            </div>
-          </div>
+                  <div className="grid gap-4 mt-6">
+                    {filteredAlerts.length === 0 ? (
+                      <div className="text-gray-500">No alerts to show.</div>
+                    ) : (
+                      filteredAlerts.map((alert) => (
+                        <div
+                          key={alert.id}
+                          className={`bg-white rounded-xl shadow p-4 border-l-4 ${
+                            alert.type === "critical"
+                              ? "border-red-500"
+                              : alert.type === "warning"
+                              ? "border-yellow-400"
+                              : "border-blue-400"
+                          }`}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="text-lg font-semibold">{alert.title}</h3>
+                              <p className="text-gray-600">{alert.description}</p>
+                              <div className="text-sm text-gray-500 mt-1">{alert.time}</div>
+                              <div className="flex flex-wrap mt-2 gap-2">
+                                {alert.tags.map((tag, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-800"
+                                  >
+                                    {tag.label}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
 
-          <div className="flex flex-col items-end gap-2">
-            <a
-              href={`/alerts/${alert.id}`}
-              className="text-blue-600 hover:underline text-sm"
-            >
-              Show More
-            </a>
-
-            {alert.isNew ? (
-              <button
-                onClick={() => toggleReadStatus(alert.id, true)}
-                className="text-sm text-green-600 hover:underline"
-              >
-                Mark as Read
-              </button>
-            ) : (
-              <button
-                onClick={() => toggleReadStatus(alert.id, false)}
-                className="text-sm text-orange-600 hover:underline"
-              >
-                Mark as Unread
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    ))
-  )}
-</div>
-
-
-
+                            <div className="flex flex-col items-end gap-2">
+                              <Link
+                                to={`/alerts/${alert.id}`}
+                                onClick={() => {
+                                  if (alert.isNew) toggleReadStatus(alert.id, true);
+                                }}
+                                className="text-blue-600 hover:underline text-sm"
+                              >
+                                Show More
+                              </Link>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </main>
               </>
             }
