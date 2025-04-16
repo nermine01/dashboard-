@@ -44,7 +44,7 @@ const AlertSummary = ({ categoryCounts }) => {
       <SummaryCard
         Icon={AlertCircleIcon}
         title="Forecast"
-        count={0}
+        count={categoryCounts.forecast|| 0}
         description="Requires immediate attention"
         color="#ef4444"
       />

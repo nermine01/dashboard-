@@ -2,6 +2,7 @@ from models import Product, Group4, ProductLocation
 from database import SessionLocal
 import datetime
 import random
+from models import SalesForecast
 
 # Create mock categories (Group4)
 def create_mock_categories(db):
@@ -81,6 +82,25 @@ def create_mock_products(db, categories):
         db.add(product_location)
 
     db.commit()
+    for product in products:
+        for pl in product.product_locations:  # Use the backref
+            # Create forecasts for past few days to test alert logic
+            for days_ago in range(1, 4):
+                forecast_date = datetime.date.today() - datetime.timedelta(days=days_ago)
+                forecasted_sales = random.randint(20, 30)
+                actual_sales = forecasted_sales - random.randint(11, 20)  # Ensures BIAS > 10
+                sales_forecast = SalesForecast(
+                    product_location_id=pl.id,
+                    date=forecast_date,
+                    forecasted_sales=forecasted_sales,
+                    actual_sales=actual_sales,
+                    sales_last_year=forecasted_sales - random.randint(1, 5),
+                    seasonal_deviation_threshold=5.0
+                )
+                db.add(sales_forecast)
+
+    db.commit()
+
 
     return products
 
