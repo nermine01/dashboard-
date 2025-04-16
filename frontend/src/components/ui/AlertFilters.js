@@ -11,7 +11,8 @@ function AlertFilters({
   setCategoryFilter,
   setTypeFilter,
 }) {
-  const tabs = ["All Alerts", "Unread", "Critical"];
+  const tabs = ["All Alerts", "Unread", "Read", "Critical"];
+
 
   return (
     <div className="mt-8 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">

@@ -8,6 +8,7 @@ const AlertDetails = ({ alerts }) => {
   const [newThreshold, setNewThreshold] = useState(alert?.threshold || 0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState(false); // Track error state
 
   if (!alert) {
     return (
@@ -21,6 +22,8 @@ const AlertDetails = ({ alerts }) => {
   const handleSetThreshold = async () => {
     setLoading(true);
     setSuccess(false);
+    setError(false); // Reset error state
+
     try {
       const response = await fetch(
         `http://localhost:8000/alerts/${alert.id}/update-threshold`,
@@ -34,12 +37,19 @@ const AlertDetails = ({ alerts }) => {
       );
 
       if (response.ok) {
+        const data = await response.json();
         setSuccess(true);
+
+        // Update alert locally with new threshold and message
+        alert.threshold = newThreshold;
+        alert.description = data.new_message; // Update the description with the new message
       } else {
         console.error("Failed to update threshold");
+        setError(true); // Set error if update fails
       }
     } catch (error) {
       console.error("Error updating threshold:", error);
+      setError(true); // Set error if there's an exception
     } finally {
       setLoading(false);
     }
@@ -80,9 +90,16 @@ const AlertDetails = ({ alerts }) => {
             {loading ? "Setting..." : "Set"}
           </button>
         </div>
+
         {success && (
           <p className="text-sm text-green-600 mt-2">
             Threshold updated successfully!
+          </p>
+        )}
+
+        {error && (
+          <p className="text-sm text-red-600 mt-2">
+            Failed to update threshold. Please try again.
           </p>
         )}
       </div>
