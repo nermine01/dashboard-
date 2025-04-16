@@ -34,7 +34,10 @@ function App() {
   
         for (const category in data.alerts) {
           const categoryAlerts = data.alerts[category];
-          categoryAlerts.forEach((alertText, index) => {
+  
+          categoryAlerts.forEach((alertObj) => {
+            const alertText = alertObj.message;
+  
             const stockMatch = alertText.match(/Stock:\s*(\d+)/i);
             const thresholdMatch = alertText.match(/\((?:Max|Reorder Point|Ideal):\s*(\d+)\)/i);
             const locationMatch = alertText.match(/at (.*?) (?:is|has|detected)/i);
@@ -46,7 +49,7 @@ function App() {
             const productName = productMatch ? productMatch[1] : "Unknown";
   
             parsedAlerts.push({
-              id: `${category}-${index}`,
+              id: alertObj.id,
               type: CATEGORY_MAP[category]?.type || "info",
               title: `${category.replace(/_/g, " ")} alert`,
               description: alertText,
@@ -55,19 +58,24 @@ function App() {
                   label,
                   color: label.toLowerCase().replace(/\s+/g, "-"),
                 })) || [],
-              time: new Date().toLocaleString(),
+              time: new Date(alertObj.timestamp).toLocaleString(),
               isNew: true,
               currentStock,
               threshold,
               location,
               productName,
+              productId: alertObj.product_id,
             });
           });
         }
   
         setAlerts(parsedAlerts);
+      })
+      .catch((error) => {
+        console.error("Error fetching alerts:", error);
       });
   }, []);
+  
   
 
   const categoryCounts = {

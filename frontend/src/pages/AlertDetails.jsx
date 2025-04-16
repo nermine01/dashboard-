@@ -3,12 +3,12 @@ import { useState } from "react";
 
 const AlertDetails = ({ alerts }) => {
   const { id } = useParams();
-  const alert = alerts.find((a) => a.id === id);
+  const alert = alerts.find((a) => a.id === parseInt(id));
 
   const [newThreshold, setNewThreshold] = useState(alert?.threshold || 0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState(false); // Track error state
+  const [error, setError] = useState(false);
 
   if (!alert) {
     return (
@@ -22,7 +22,7 @@ const AlertDetails = ({ alerts }) => {
   const handleSetThreshold = async () => {
     setLoading(true);
     setSuccess(false);
-    setError(false); // Reset error state
+    setError(false);
 
     try {
       const response = await fetch(
@@ -40,16 +40,16 @@ const AlertDetails = ({ alerts }) => {
         const data = await response.json();
         setSuccess(true);
 
-        // Update alert locally with new threshold and message
+        // Update alert locally with new threshold and description
         alert.threshold = newThreshold;
-        alert.description = data.new_message; // Update the description with the new message
+        alert.description = data.new_message || alert.description;
       } else {
         console.error("Failed to update threshold");
-        setError(true); // Set error if update fails
+        setError(true);
       }
     } catch (error) {
       console.error("Error updating threshold:", error);
-      setError(true); // Set error if there's an exception
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -69,6 +69,7 @@ const AlertDetails = ({ alerts }) => {
         <DetailItem label="Current Stock" value={alert.currentStock} />
         <DetailItem label="Threshold" value={alert.threshold} />
         <DetailItem label="Location" value={alert.location} />
+        <DetailItem label="Product" value={alert.productName} />
       </div>
 
       <div className="mt-8">

@@ -31,21 +31,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+from models import Alert
 @app.get("/alerts")
 def get_all_alerts(db: Session = Depends(get_db)):
-    all_alerts = {
-        "overstock": check_overstock(db),
-        "low_stock": check_low_stock(db),
-        "shrinkage": check_stock_shrinkage(db),
-        "near_expiration": check_near_expiration(db),
-        "near_end_of_life": check_near_end_of_life(db),
-        "sufficient_stock": check_sufficient_stock(db),
-        "stocktaking": check_stocktaking(db),
-        "product_recall": check_product_recall(db),
-        "sales": check_sales_alert(db)
-    }
-    return JSONResponse(content={"alerts": all_alerts})
+    alerts = db.query(Alert).all()
+
+    categorized_alerts = {}
+
+    for alert in alerts:
+        alert_data = {
+            "id": alert.id,
+            "message": alert.message,
+            "timestamp": alert.timestamp.isoformat(),
+            "product_id": alert.product_id
+        }
+
+        if alert.alert_type not in categorized_alerts:
+            categorized_alerts[alert.alert_type] = []
+
+        categorized_alerts[alert.alert_type].append(alert_data)
+
+    return JSONResponse(content={"alerts": categorized_alerts})
 
 
 @app.put("/alerts/{alert_id}/update-threshold")
