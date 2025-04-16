@@ -134,6 +134,23 @@ def check_sales_alert(db: Session):
             alerts.append(message)
             insert_alert(db, "sales", message, product.id)
     return alerts
+# Function to check over forecasting using BIAS
+def check_over_forecasting(db: Session):
+    over_forecast_alerts = []
+    sales_forecasts = db.query(SalesForecast).all()
+    for forecast in sales_forecasts:
+        product_location = forecast.product_location
+        product = product_location.product
+        location = product_location.location
+        bias = forecast.forecasted_sales - forecast.actual_sales
+        if bias > 10:  # Threshold for over forecasting
+            message = (
+                f"Over Forecasting Alert: {product.name} at {location.name}. "
+                f"BIAS: {bias} (Forecast: {forecast.forecasted_sales}, Actual: {forecast.actual_sales})"
+            )
+            over_forecast_alerts.append(message)
+            insert_alert(db, "forecast", message, product.id)
+    return over_forecast_alerts
 
 # Function to run all alerts and store them in the database
 def run_alerts():
@@ -147,6 +164,7 @@ def run_alerts():
     check_stocktaking(db)
     check_product_recall(db)
     check_sales_alert(db)
+    check_over_forecasting(db)
     db.close()
 
 # Scheduling the task to run every minute using APScheduler
