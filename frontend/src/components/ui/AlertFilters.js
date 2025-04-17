@@ -11,7 +11,7 @@ function AlertFilters({
   setCategoryFilter,
   setTypeFilter,
 }) {
-  const tabs = ["All Alerts", "Unread", "Read", "Critical"];
+  const tabs = ["All Alerts", "Unread", "Reviewed","Resolved","Critical"];
 
 
   return (
@@ -44,8 +44,9 @@ function AlertFilters({
 
         <div className="flex gap-2 flex-wrap">
           <Dropdown label="Priority" items={["High", "Medium", "Low"]} onSelect={setPriorityFilter} />
-          <Dropdown label="Category" items={["Inventory", "Forecast", "Replenishment","Data Input"]} onSelect={setCategoryFilter} />
-          <Dropdown label="Alert Type" items={["Low Stock", "Shrinkage", "Expiration", "Lifecycle", "Stocktaking", "Recall", "Overstock", "OK"]} onSelect={setTypeFilter} />
+          <Dropdown label="Category" items={["Inventory", "Forecast","Data Input"]} onSelect={setCategoryFilter} />
+          <Dropdown label="Alert Type" items={["Low Stock", "Shrinkage", "Expiration", "Lifecycle", "Stocktaking", "Recall", "Overstock","Forecast "]} onSelect={setTypeFilter} />
+          <Dropdown label="Product Location" items={["Group 1", "Group 2", "Group 2", "Group 3", "Group 4",]} onSelect={setTypeFilter} />
         </div>
       </div>
     </div>
