@@ -14,7 +14,7 @@ const AlertDetailsPage = () => {
       <Header criticalCount={criticalCount} criticalAlerts={criticalAlerts} />
       <Link
         to="/"
-        className="inline-flex items-center mb-6 text-[#3eadc1] hover:text-[#2b7886] transition-colors"
+        className="inline-flex items-center mb-6 mt-3 text-[#3eadc1] hover:text-[#2b7886] transition-colors"
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Dashboard
