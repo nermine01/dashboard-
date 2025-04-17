@@ -1,4 +1,3 @@
-"use client";
 import { SearchIcon } from "./Icons";
 import Dropdown from "./Dropdown";
 
