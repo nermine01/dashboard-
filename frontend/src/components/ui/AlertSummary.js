@@ -1,17 +1,21 @@
-import { AlertCircleIcon, PackageIcon, ShoppingBagIcon } from "./Icons";
+import {
+  BarChartIcon,
+  PackageIcon,
+  DatabaseIcon,
+} from "lucide-react";
 
-const SummaryCard = ({ title, count, description, Icon, color }) => {
+const SummaryCard = ({ title, count, description, Icon, color, accentColor }) => {
   return (
     <div className="overflow-hidden border-0 shadow-md bg-white hover:shadow-lg transition-shadow rounded-lg w-full max-w-[400px]">
-      <div className="h-1 w-full" style={{ backgroundColor: color }}></div>
+      <div className="h-1 w-full" style={{ backgroundColor: accentColor }}></div>
       <div className="p-4 pb-2">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium flex items-center gap-2">
             <div
               className="p-2 rounded-full"
-              style={{ backgroundColor: `${color}1A` }} // 1A = ~10% opacity in hex
+              style={{ backgroundColor: `${accentColor}1A` }}
             >
-              <Icon className="h-5 w-5" style={{ color: color }} />
+              <Icon className="h-5 w-5" style={{ color: accentColor }} />
             </div>
             {title}
           </h2>
@@ -19,7 +23,7 @@ const SummaryCard = ({ title, count, description, Icon, color }) => {
       </div>
       <div className="px-4 pb-2">
         <div className="flex flex-col">
-          <span className="text-4xl font-bold text-[#041f3a]">{count}</span>
+          <span className="text-4xl font-bold" style={{ color }}>{count}</span>
           <p className="text-sm text-[#595959]">{description}</p>
         </div>
       </div>
@@ -27,11 +31,11 @@ const SummaryCard = ({ title, count, description, Icon, color }) => {
         <span
           className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
           style={{
-            backgroundColor: `${color}1A`,
-            color: color,
+            backgroundColor: `${accentColor}1A`,
+            color: accentColor,
           }}
         >
-          {count > 0 ? `+${count} since yesterday` : "-2 since yesterday"}
+          {count > 0 ? `+${count} this week` : "-2 this week"}
         </span>
       </div>
     </div>
@@ -42,26 +46,28 @@ const AlertSummary = ({ categoryCounts }) => {
   return (
     <div className="flex flex-wrap justify-between gap-4">
       <SummaryCard
-        Icon={AlertCircleIcon}
-        title="Forecast"
-        count={categoryCounts.forecast|| 0}
-        description="Requires immediate attention"
-        color="#ef4444"
+        Icon={BarChartIcon}
+        title="Forecast Alerts"
+        count={categoryCounts.forecast || 0}
+        description="Demand anomalies & prediction gaps"
+        color="#0a5096"           // Medium Blue for main count
+        accentColor="#21c1de"     // Light Blue for top bar & badge
       />
       <SummaryCard
         Icon={PackageIcon}
         title="Inventory Alerts"
         count={categoryCounts.inventory || 0}
-        description="Stock level notifications"
-        color="#f59e0b"
+        description="Low stock, shrinkage, overflows"
+        color="#18434a"           // Dark Green for main count
+        accentColor="#ffa641"     // Orange for accents
       />
-    
       <SummaryCard
-        Icon={ShoppingBagIcon}
-        title="Master Data"
+        Icon={DatabaseIcon}
+        title="Master Data Alerts"
         count={categoryCounts.master || 0}
-        description="forecast performance insights"
-        color="#10b981"
+        description="Product or location mismatches"
+        color="#3eadc1"           // Teal for main count
+        accentColor="#c13e6c"     // Magenta for accents
       />
     </div>
   );
