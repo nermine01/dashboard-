@@ -30,7 +30,11 @@ const CATEGORY_MAP = {
   stocktaking: { type: "warning", tags: ["Inventory", "Stocktaking"] },
   product_recall: { type: "critical", tags: ["Recall", "Urgent"] },
   overstock: { type: "info", tags: ["Inventory", "Overstock"] },
-  forecast: { type: "critical", tags: ["High Priority","forecast"] },
+  forecast: { type: "warning", tags: ["Medium Priority","forecast"] },
+  master_data: {
+    type: "warning",
+    tags: ["Master Data", "Mismatch"]
+  },
 };
 
 function App() {
@@ -100,6 +104,9 @@ function App() {
     ).length,
     forecast: alerts.filter((alert) =>
       alert.tags.some((tag) => tag.label.toLowerCase().includes("forecast"))
+    ).length,
+    master: alerts.filter((alert) =>
+      alert.tags.some((tag) => tag.label.toLowerCase().includes("master"))
     ).length,
     other: alerts.filter((alert) =>
       !alert.tags.some((tag) =>
