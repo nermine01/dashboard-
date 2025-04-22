@@ -144,7 +144,7 @@ function App() {
     const matchesTab =
       activeTab === "All Alerts" ||
       (activeTab === "Unread" && alert.isNew) ||
-      (activeTab === "Read" && !alert.isNew) ||
+      (activeTab === "Reviewed" && !alert.isNew) ||
       (activeTab === "Critical" && alert.type === "critical");
 
     return (
@@ -186,7 +186,11 @@ function App() {
                     </p>
                   </div>
 
-                  <AlertSummary categoryCounts={categoryCounts} />
+                  <AlertSummary
+  categoryCounts={categoryCounts}
+  onSummaryClick={(category) => setTypeFilter(category)}
+/>
+
 
                   <AlertFilters
                     activeTab={activeTab}

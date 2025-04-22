@@ -4,9 +4,12 @@ import {
   DatabaseIcon,
 } from "lucide-react";
 
-const SummaryCard = ({ title, count, description, Icon, color, accentColor }) => {
+const SummaryCard = ({ title, count, description, Icon, color, accentColor, onClick }) => {
   return (
-    <div className="overflow-hidden border-0 shadow-md bg-white hover:shadow-lg transition-shadow rounded-lg w-full max-w-[400px]">
+    <div
+      onClick={onClick}
+      className="overflow-hidden border-0 shadow-md bg-white hover:shadow-lg transition-shadow rounded-lg w-full max-w-[400px] cursor-pointer"
+    >
       <div className="h-1 w-full" style={{ backgroundColor: accentColor }}></div>
       <div className="p-4 pb-2">
         <div className="flex items-center justify-between">
@@ -42,7 +45,8 @@ const SummaryCard = ({ title, count, description, Icon, color, accentColor }) =>
   );
 };
 
-const AlertSummary = ({ categoryCounts }) => {
+
+const AlertSummary = ({ categoryCounts, onSummaryClick }) => {
   return (
     <div className="flex flex-wrap justify-between gap-4">
       <SummaryCard
@@ -50,27 +54,31 @@ const AlertSummary = ({ categoryCounts }) => {
         title="Forecast Alerts"
         count={categoryCounts.forecast || 0}
         description="Demand anomalies & prediction gaps"
-        color="#0a5096"           // Medium Blue for main count
-        accentColor="#21c1de"     // Light Blue for top bar & badge
+        color="#0a5096"
+        accentColor="#21c1de"
+        onClick={() => onSummaryClick("forecast")}
       />
       <SummaryCard
         Icon={PackageIcon}
         title="Inventory Alerts"
         count={categoryCounts.inventory || 0}
         description="Low stock, shrinkage, overflows"
-        color="#18434a"           // Dark Green for main count
-        accentColor="#ffa641"     // Orange for accents
+        color="#18434a"
+        accentColor="#ffa641"
+        onClick={() => onSummaryClick("inventory")}
       />
       <SummaryCard
         Icon={DatabaseIcon}
         title="Master Data Alerts"
         count={categoryCounts.master || 0}
         description="Product or location mismatches"
-        color="#3eadc1"           // Teal for main count
-        accentColor="#c13e6c"     // Magenta for accents
+        color="#3eadc1"
+        accentColor="#c13e6c"
+        onClick={() => onSummaryClick("master")}
       />
     </div>
   );
 };
+
 
 export default AlertSummary;
