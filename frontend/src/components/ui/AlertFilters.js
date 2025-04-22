@@ -1,6 +1,48 @@
 "use client";
+import { useState } from "react";
 import { SearchIcon } from "./Icons";
 import Dropdown from "./Dropdown";
+
+const categoryToAlertTypes = {
+  "Stock": [
+    "Overstock",
+    "Low Stock",
+    "Stock Shrinkage",
+    "Near Expiration",
+    "Near End of Life Period",
+    "Sufficient Stock",
+    "Stocktaking Alert",
+    "Product Recall Alert",
+    "SKU Velocity Alert",
+    "Sales Alert"
+  ],
+  "Forecast": [
+    "Over Forecasting",
+    "Under Forecasting",
+    "Promotion Incoming",
+    "New Product Launch",
+    "Seasonal Forecast Issue",
+    "Year-over-Year (Y-O-Y) Deviation"
+  ],
+  "Replenishment": [
+    "Delay Issue",
+    "Damaged Goods",
+    "Mismatch",
+    "Quality Issue",
+    "Discontinued Product",
+    "Order Cancelled",
+    "Lead Time Alert",
+    "Supplier Alerts",
+    "Supplier Performance Alert",
+    "Supplier Contract Expiration",
+    "Supplier Capacity Alert",
+    "Warehouse Capacity Alert"
+  ],
+  "Data Input": [
+    "Missing Data",
+    "Incorrect Input"
+  ]
+};
 
 function AlertFilters({
   activeTab,
@@ -10,9 +52,16 @@ function AlertFilters({
   setPriorityFilter,
   setCategoryFilter,
   setTypeFilter,
+  setLocationFilter, // ✅ Added new prop
 }) {
-  const tabs = ["All Alerts", "Unread", "Reviewed","Resolved","Critical"];
+  const tabs = ["All Alerts", "Unread", "Reviewed", "Resolved", "Critical"];
+  const [filteredAlertTypes, setFilteredAlertTypes] = useState([]);
 
+  const handleCategorySelect = (selectedCategory) => {
+    setCategoryFilter(selectedCategory);
+    setFilteredAlertTypes(categoryToAlertTypes[selectedCategory] || []);
+    setTypeFilter(null); // Reset alert type when category changes
+  };
 
   return (
     <div className="mt-8 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -44,9 +93,25 @@ function AlertFilters({
 
         <div className="flex gap-2 flex-wrap">
           <Dropdown label="Priority" items={["High", "Medium", "Low"]} onSelect={setPriorityFilter} />
-          <Dropdown label="Category" items={["Inventory", "Forecast","Data Input"]} onSelect={setCategoryFilter} />
-          <Dropdown label="Alert Type" items={["Low Stock", "Shrinkage", "Expiration", "Lifecycle", "Stocktaking", "Recall", "Overstock","Forecast "]} onSelect={setTypeFilter} />
-          <Dropdown label="Product Location" items={["Group 1", "Group 2", "Group 2", "Group 3", "Group 4",]} onSelect={setTypeFilter} />
+
+          <Dropdown
+            label="Category"
+            items={Object.keys(categoryToAlertTypes)}
+            onSelect={handleCategorySelect}
+          />
+
+<Dropdown
+  label="Alert Type"
+  items={filteredAlertTypes}
+  onSelect={(value) => setTypeFilter(value.replace(/\s+/g, "_").toLowerCase())}
+/>
+
+
+          <Dropdown
+            label="Product Location"
+            items={["Group 1", "Group 2", "Group 3", "Group 4"]}
+            onSelect={setLocationFilter} // ✅ Now correctly updates location filter
+          />
         </div>
       </div>
     </div>

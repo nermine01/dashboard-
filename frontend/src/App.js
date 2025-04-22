@@ -6,6 +6,40 @@ import AlertFilters from "./components/ui/AlertFilters";
 import AlertList from "./components/ui/AlertList";
 import AlertDetails from "./pages/AlertDetails";
 
+const ALERT_TYPE_LABELS = {
+  overstock: "Overstock",
+  low_stock: "Low Stock",
+  shrinkage: "Stock Shrinkage",
+  near_expiration: "Near Expiration",
+  near_end_of_life: "Near End of Life Period",
+  sufficient_stock: "Sufficient Stock",
+  stocktaking: "Stocktaking Alert",
+  product_recall: "Product Recall Alert",
+  sku_velocity: "SKU Velocity Alert",
+  sales: "Sales Alert",
+  forecast: "Forecast Alert",
+  over_forecasting: "Over Forecasting",
+  under_forecasting: "Under Forecasting",
+  promotion_incoming: "Promotion Incoming",
+  new_product_launch: "New Product Launch",
+  seasonal_forecast_issue: "Seasonal Forecast Issue",
+  yoy_deviation: "Year-over-Year (Y-O-Y) Deviation",
+  delay_issue: "Delay Issue",
+  damaged_goods: "Damaged Goods",
+  mismatch: "Mismatch",
+  quality_issue: "Quality Issue",
+  discontinued_product: "Discontinued Product",
+  order_cancelled: "Order Cancelled",
+  lead_time_alert: "Lead Time Alert",
+  supplier_alerts: "Supplier Alerts",
+  supplier_performance: "Supplier Performance Alert",
+  supplier_contract_expiration: "Supplier Contract Expiration",
+  supplier_capacity: "Supplier Capacity Alert",
+  warehouse_capacity: "Warehouse Capacity Alert",
+  missing_data: "Missing Data",
+  incorrect_input: "Incorrect Input",
+  return_alerts: "Return Alerts"
+};
 
 const getReadAlertsFromStorage = () => {
   const stored = localStorage.getItem("readAlerts");
@@ -20,7 +54,6 @@ const saveReadAlertToStorage = (id) => {
   }
 };
 
-
 const CATEGORY_MAP = {
   low_stock: { type: "critical", tags: ["High Priority", "Inventory", "Low Stock"] },
   shrinkage: { type: "warning", tags: ["High Priority", "Inventory", "Shrinkage"] },
@@ -30,7 +63,7 @@ const CATEGORY_MAP = {
   stocktaking: { type: "warning", tags: ["Inventory", "Stocktaking"] },
   product_recall: { type: "critical", tags: ["Recall", "Urgent"] },
   overstock: { type: "info", tags: ["Inventory", "Overstock"] },
-  forecast: { type: "warning", tags: ["Medium Priority","forecast"] },
+  forecast: { type: "warning", tags: ["Medium Priority", "Forecast"] },
   master_data: {
     type: "warning",
     tags: ["Master Data", "Mismatch"]
@@ -44,6 +77,7 @@ function App() {
   const [priorityFilter, setPriorityFilter] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [typeFilter, setTypeFilter] = useState(null);
+  const [locationFilter, setLocationFilter] = useState(null); // ✅ NEW
 
   useEffect(() => {
     fetch("http://localhost:8000/alerts")
@@ -52,40 +86,49 @@ function App() {
         const readAlerts = getReadAlertsFromStorage();
         const parsedAlerts = [];
 
-
-        for (const category in data.alerts) {
-          const categoryAlerts = data.alerts[category];
+        for (const categoryKey in data.alerts) {
+          const categoryAlerts = data.alerts[categoryKey];
 
           categoryAlerts.forEach((alertObj) => {
-            const alertText = alertObj.message;
+            let typeLabel = "";
+            if (categoryKey === "near_expiration") {
+              typeLabel = "Near Expiration";
+            } else if (categoryKey === "near_end_of_life") {
+              typeLabel = "Near End of Life Period";
+            } else if (categoryKey === "forecast") {
+              const match = alertObj.message.match(/^(.*?) Alert:/i);
+              typeLabel = match ? match[1].trim() : "Forecast Alert";
+            } else {
+              typeLabel =
+                ALERT_TYPE_LABELS[categoryKey] ||
+                categoryKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+            }
 
-            const stockMatch = alertText.match(/Stock:\s*(\d+)/i);
-            const thresholdMatch = alertText.match(/\((?:Max|Reorder Point|Ideal):\s*(\d+)\)/i);
-            const locationMatch = alertText.match(/at (.*?) (?:is|has|detected)/i);
-            const productMatch = alertText.match(/ALERT: (.*?) at/i);
-
-            const currentStock = stockMatch ? parseInt(stockMatch[1]) : 0;
-            const threshold = thresholdMatch ? parseInt(thresholdMatch[1]) : 0;
-            const location = locationMatch ? locationMatch[1] : "Unknown";
-            const productName = productMatch ? productMatch[1] : "Unknown";
+            const tags = [
+              { label: typeLabel, color: "blue" }, // e.g. "Near Expiration"
+              { label: categoryKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()), color: "gray" }
+            ];
+            
 
             parsedAlerts.push({
               id: alertObj.id,
-              type: CATEGORY_MAP[category]?.type || "info",
-              title: `${category.replace(/_/g, " ")} alert`,
-              description: alertText,
-              tags:
-                CATEGORY_MAP[category]?.tags.map((label) => ({
+              type: CATEGORY_MAP[categoryKey]?.type || "info",
+              title: `${typeLabel} Alert`,
+              description: alertObj.message,
+              tags: [
+                ...tags,
+                ...(CATEGORY_MAP[categoryKey]?.tags.map((label) => ({
                   label,
                   color: label.toLowerCase().replace(/\s+/g, "-"),
-                })) || [],
+                })) || []),
+              ],
               time: new Date(alertObj.timestamp).toLocaleString(),
               isNew: !readAlerts.includes(alertObj.id),
-              currentStock,
-              threshold,
-              location,
-              productName,
-              productId: alertObj.product_id,
+              currentStock: 0,
+              threshold: 0,
+              location: "Unknown",
+              productName: "Unknown",
+              productId: alertObj.product_id
             });
           });
         }
@@ -135,11 +178,16 @@ function App() {
         tag.label.toLowerCase().includes(categoryFilter.toLowerCase())
       );
 
-    const matchesType =
+      const matchesType =
       !typeFilter ||
       alert.tags.some((tag) =>
-        tag.label.toLowerCase().includes(typeFilter.toLowerCase())
+        tag.label.toLowerCase().replace(/\s+/g, "_") === typeFilter.toLowerCase().replace(/\s+/g, "_")
       );
+    
+
+    const matchesLocation =
+      !locationFilter ||
+      alert.location.toLowerCase().includes(locationFilter.toLowerCase());
 
     const matchesTab =
       activeTab === "All Alerts" ||
@@ -152,6 +200,7 @@ function App() {
       matchesPriority &&
       matchesCategory &&
       matchesType &&
+      matchesLocation &&
       matchesTab
     );
   });
@@ -161,12 +210,12 @@ function App() {
       alert.id === id ? { ...alert, isNew: !isRead } : alert
     );
     setAlerts(updatedAlerts);
-  
+
     if (isRead) {
       saveReadAlertToStorage(id);
     }
   };
-  
+
   return (
     <Router>
       <div className="min-h-screen bg-gray-100 flex flex-col">
@@ -179,7 +228,7 @@ function App() {
                 <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
                   <div className="mb-8">
                     <h2 className="text-3xl font-bold bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">
-                    Alert Dashboard for Forecasting and Replenishement
+                      Alert Dashboard for Forecasting and Replenishment
                     </h2>
                     <p className="text-gray-500">
                       Monitor and manage all retail alerts in one place.
@@ -187,10 +236,9 @@ function App() {
                   </div>
 
                   <AlertSummary
-  categoryCounts={categoryCounts}
-  onSummaryClick={(category) => setTypeFilter(category)}
-/>
-
+                    categoryCounts={categoryCounts}
+                    onSummaryClick={(category) => setTypeFilter(category)}
+                  />
 
                   <AlertFilters
                     activeTab={activeTab}
@@ -200,6 +248,7 @@ function App() {
                     setPriorityFilter={setPriorityFilter}
                     setCategoryFilter={setCategoryFilter}
                     setTypeFilter={setTypeFilter}
+                    setLocationFilter={setLocationFilter} // ✅ Pass location filter
                   />
 
                   <div className="grid gap-4 mt-6">
