@@ -1,27 +1,26 @@
 import React, { useState } from "react";
 import NotificationsDropdown from "./NotificationsDropdown";
-import { AlertCircleIcon } from "./Icons";
+import { BellIcon } from "./Icons";
 
 function NotificationButton({ criticalAlerts }) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
 
   const toggleDropdown = () => {
-    setIsDropdownVisible((prev) => !prev);
+    setIsDropdownVisible((prev) => !prev); // Toggle visibility state
   };
 
   return (
     <div className="relative">
       <button
-        className="p-2 rounded-full hover:bg-gray-100"
+        className="p-3 rounded-full hover:bg-[#21c1de]/10 transition-colors duration-200"
         onClick={toggleDropdown}
       >
-        <AlertCircleIcon className="w-5 h-5" />
+        <BellIcon className="w-6 h-6 text-[#21c1de]" />
         <span className="sr-only">Notifications</span>
       </button>
 
-      {isDropdownVisible && (
-        <NotificationsDropdown criticalAlerts={criticalAlerts} />
-      )}
+      {/* Conditionally render the notifications dropdown */}
+      {isDropdownVisible && <NotificationsDropdown criticalAlerts={criticalAlerts} />}
     </div>
   );
 }
