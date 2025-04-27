@@ -3,6 +3,37 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from models import Product, ProductLocation, Alert, SalesForecast
 from database import SessionLocal
 from sqlalchemy.orm import Session
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from pydantic import EmailStr
+import threading
+import asyncio
+
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from pydantic import BaseModel, EmailStr
+##################################################################
+# Email Config
+conf = ConnectionConfig(
+    MAIL_USERNAME="khalil.hannachi@retsci.com",
+    MAIL_PASSWORD="disk sxuk jjuy dqqs",
+    MAIL_FROM="khalil.hannachi@retsci.com",
+    MAIL_PORT=587,
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=False,
+    USE_CREDENTIALS=True
+)
+async def send_email_alert(message_text: str):
+    message = MessageSchema(
+        subject="Master Data Alert",
+        recipients=["nermine.haouala@gmail.com"],  # You can list multiple emails
+        body=message_text,
+        subtype="plain"
+    )
+    fm = FastMail(conf)
+    await fm.send_message(message)
+###################################################################################
+
+
 
 # Function to insert alerts into the database
 def insert_alert(db: Session, alert_type: str, message: str, product_id: int = None):
@@ -15,7 +46,17 @@ def insert_alert(db: Session, alert_type: str, message: str, product_id: int = N
     db.add(alert)
     db.commit()
     db.refresh(alert)
+
+    if alert_type == "master_data":
+        try:
+            # Explicitly create a new event loop for this thread
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(send_email_alert(message))  # Run the email sending task
+        except Exception as e:
+            print(f"Error while scheduling email task: {e}")
     return alert
+
 
 # Function to check overstock condition
 def check_overstock(db: Session):
@@ -180,6 +221,7 @@ def check_master_data_mismatch(db: Session):
 # Function to run all alerts
 def run_alerts():
     db = SessionLocal()
+    check_master_data_mismatch(db)
     check_overstock(db)
     check_low_stock(db)
     check_stock_shrinkage(db)
@@ -190,7 +232,7 @@ def run_alerts():
     check_product_recall(db)
     check_sales_alert(db)
     check_over_forecasting(db)
-    check_master_data_mismatch(db)
+    
     db.close()
 
 # Scheduling the task to run every minute
