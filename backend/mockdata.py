@@ -1,21 +1,40 @@
-from models import Product, Group4, ProductLocation
+from models import Product, Group4, Group3, Group2, Group1, ProductLocation
 from database import SessionLocal
 import datetime
 import random
 from models import SalesForecast
 
-# Create mock categories (Group4)
+# Create mock categories (Group1 ➔ Group2 ➔ Group3 ➔ Group4)
 def create_mock_categories(db):
+    group1 = Group1(name="Main Category")
+    db.add(group1)
+    db.commit()
+    db.refresh(group1)
+
+    # Group2 (Sub Category) referencing Group1
+    group2 = Group2(name="Sub Category", parent_id=group1.id)
+    db.add(group2)
+    db.commit()
+    db.refresh(group2)
+
+    # Group3 (Detailed Category) referencing Group2
+    group3 = Group3(name="Detailed Category", parent_id=group2.id)
+    db.add(group3)
+    db.commit()
+    db.refresh(group3)
+
+    # Group4 entries referencing Group3
     categories = [
-        Group4(name="Electronics"),
-        Group4(name="Groceries"),
-        Group4(name="Beverages"),
-        Group4(name="Personal Care"),
-        Group4(name="Household Supplies"),
+        Group4(name="Electronics", parent_id=group3.id),
+        Group4(name="Groceries", parent_id=group3.id),
+        Group4(name="Beverages", parent_id=group3.id),
+        Group4(name="Personal Care", parent_id=group3.id),
+        Group4(name="Household Supplies", parent_id=group3.id),
     ]
     db.add_all(categories)
     db.commit()
 
+    # Refresh Group4 entries after committing
     for category in categories:
         db.refresh(category)
 
@@ -23,7 +42,6 @@ def create_mock_categories(db):
 
 # Helper to generate random future expiration dates
 def random_expiration():
-    # Expiration close to now will trigger alerts
     return datetime.datetime.now() + datetime.timedelta(days=random.randint(1, 5))
 
 def create_mock_products(db, categories):
@@ -70,25 +88,25 @@ def create_mock_products(db, categories):
     for product in products:
         db.refresh(product)
 
-        # Correct column name for ProductLocation: 'product_id'
+        # Correct creation of ProductLocation
         product_location = ProductLocation(
-            product_id=product.id,  # Corrected column name
-            location_id=random.choice([1, 2, 3]),  # Assigning mock locations (adjust as needed)
-            supplier_id=random.choice([1, 2, 3]),  # Assigning mock suppliers (adjust as needed)
-            stock_level=random.randint(5, 100),  # Random stock level for demonstration
-            reorder_point=random.randint(10, 30),  # Random reorder point
-            max_stock=random.randint(50, 150)  # Random max stock
+            product_id=product.id,
+            location_id=random.choice([1, 2, 3]),  # Mock locations
+            supplier_id=random.choice([1, 2, 3]),  # Mock suppliers
+            stock_level=random.randint(5, 100),
+            reorder_point=random.randint(10, 30),
+            max_stock=random.randint(50, 150)
         )
         db.add(product_location)
 
     db.commit()
+
     for product in products:
-        for pl in product.product_locations:  # Use the backref
-            # Create forecasts for past few days to test alert logic
+        for pl in product.product_locations:
             for days_ago in range(1, 4):
                 forecast_date = datetime.date.today() - datetime.timedelta(days=days_ago)
                 forecasted_sales = random.randint(20, 30)
-                actual_sales = forecasted_sales - random.randint(11, 20)  # Ensures BIAS > 10
+                actual_sales = forecasted_sales - random.randint(11, 20)
                 sales_forecast = SalesForecast(
                     product_location_id=pl.id,
                     date=forecast_date,
@@ -101,9 +119,7 @@ def create_mock_products(db, categories):
 
     db.commit()
 
-
     return products
-
 
 # Main function to add mock data
 def add_mock_data():

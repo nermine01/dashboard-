@@ -74,7 +74,7 @@ const AlertSummary = ({ categoryCounts, onSummaryClick }) => {
         description="Product or location mismatches"
         color="#3eadc1"
         accentColor="#c13e6c"
-        onClick={() => onSummaryClick("master")}
+        onClick={() => onSummaryClick("master_data")}
       />
     </div>
   );

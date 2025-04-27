@@ -6,9 +6,11 @@ from datetime import date, datetime
 from pydantic import BaseModel, field_serializer
 from typing import Optional, List
 
+# ======================= SQLAlchemy Models =======================
+
 # Product Model
 class Product(Base):
-    __tablename__ = "Product"
+    __tablename__ = "product"
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
@@ -18,57 +20,61 @@ class Product(Base):
     lifecycle_status = Column(String(50))
     recall_status = Column(Boolean)
     launch_date = Column(Date)
-    
+
     category = relationship("Group4", back_populates="products")
-    alerts = relationship("Alert", back_populates="Product")
-    product_locations = relationship("ProductLocation", back_populates="Product")
+    alerts = relationship("Alert", back_populates="product")
+    product_locations = relationship("ProductLocation", back_populates="product")
 
 
-# Group Models (categories)
+# Group Models (Categories)
 class Group4(Base):
     __tablename__ = "groups_4"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
     parent_id = Column(Integer, ForeignKey("groups_4.id"))
-    
+
     parent = relationship("Group4", remote_side=[id])
     products = relationship("Product", back_populates="category")
+    groups_3 = relationship("Group3", back_populates="group4")
+
 
 class Group3(Base):
     __tablename__ = "groups_3"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    parent_id = Column(Integer, ForeignKey("groups_4.id"))
+    group4_id = Column(Integer, ForeignKey("groups_4.id"))
 
-    parent = relationship("Group4", backref="groups_3")
+    group4 = relationship("Group4", back_populates="groups_3")
+    groups_2 = relationship("Group2", back_populates="group3")
 
 
 class Group2(Base):
     __tablename__ = "groups_2"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    parent_id = Column(Integer, ForeignKey("groups_3.id"))
+    group3_id = Column(Integer, ForeignKey("groups_3.id"))
 
-    parent = relationship("Group3", backref="groups_2")
+    group3 = relationship("Group3", back_populates="groups_2")
+    groups_1 = relationship("Group1", back_populates="group2")
 
 
 class Group1(Base):
     __tablename__ = "groups_1"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), nullable=False)
-    parent_id = Column(Integer, ForeignKey("groups_2.id"))
+    group2_id = Column(Integer, ForeignKey("groups_2.id"))
 
-    parent = relationship("Group2", backref="groups_1")
+    group2 = relationship("Group2", back_populates="groups_1")
 
 
-# Locations Model
+# Location Model
 class Location(Base):
     __tablename__ = "locations"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
     chain_id = Column(Integer, ForeignKey("chains.id"))
@@ -82,7 +88,7 @@ class Location(Base):
 # Chains Model
 class Chain(Base):
     __tablename__ = "chains"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
     country_id = Column(Integer, ForeignKey("countries.id"))
@@ -93,7 +99,7 @@ class Chain(Base):
 # Countries Model
 class Country(Base):
     __tablename__ = "countries"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
 
@@ -101,7 +107,7 @@ class Country(Base):
 # Suppliers Model
 class Supplier(Base):
     __tablename__ = "suppliers"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255))
     performance_score = Column(Float)
@@ -115,9 +121,9 @@ class Supplier(Base):
 # Product Location Model
 class ProductLocation(Base):
     __tablename__ = "product_location"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    Product_id = Column(Integer, ForeignKey("Product.id"))
+    product_id = Column(Integer, ForeignKey("product.id"))
     location_id = Column(Integer, ForeignKey("locations.id"))
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
     coordination_group_id = Column(Integer)
@@ -126,7 +132,7 @@ class ProductLocation(Base):
     reorder_point = Column(Integer, nullable=False)
     max_stock = Column(Integer, nullable=False)
 
-    Product = relationship("Product", back_populates="product_locations")
+    product = relationship("Product", back_populates="product_locations")
     location = relationship("Location")
     supplier = relationship("Supplier")
 
@@ -134,7 +140,7 @@ class ProductLocation(Base):
 # Product Location Campaign Model
 class ProductLocationCampaign(Base):
     __tablename__ = "product_location_campaign"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     product_location_id = Column(Integer, ForeignKey("product_location.id"))
     campaign_id = Column(Integer, ForeignKey("campaigns.id"))
@@ -145,7 +151,7 @@ class ProductLocationCampaign(Base):
 # Location Supplier Model
 class LocationSupplier(Base):
     __tablename__ = "location_supplier"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     location_id = Column(Integer, ForeignKey("locations.id"))
     supplier_id = Column(Integer, ForeignKey("suppliers.id"))
@@ -154,7 +160,7 @@ class LocationSupplier(Base):
 # Delivery Schedule Model
 class DeliverySchedule(Base):
     __tablename__ = "delivery_schedule"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     product_location_id = Column(Integer, ForeignKey("product_location.id"))
     expected_delivery_date = Column(Date)
@@ -169,7 +175,7 @@ class DeliverySchedule(Base):
 # Transactions Model
 class Transaction(Base):
     __tablename__ = "transactions"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     product_location_id = Column(Integer, ForeignKey("product_location.id"))
     date = Column(Date)
@@ -185,7 +191,7 @@ class Transaction(Base):
 # Sales Forecast Model
 class SalesForecast(Base):
     __tablename__ = "sales_forecasts"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     product_location_id = Column(Integer, ForeignKey("product_location.id"))
     date = Column(Date)
@@ -200,7 +206,7 @@ class SalesForecast(Base):
 # Order Proposals Model
 class OrderProposal(Base):
     __tablename__ = "order_proposals"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     product_location_id = Column(Integer, ForeignKey("product_location.id"))
     date = Column(Date)
@@ -218,7 +224,7 @@ class OrderProposal(Base):
 # Campaigns Model
 class Campaign(Base):
     __tablename__ = "campaigns"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     promotion_start_date = Column(Date)
 
@@ -226,19 +232,17 @@ class Campaign(Base):
 # Alert Model
 class Alert(Base):
     __tablename__ = "alerts"
-    
+
     id = Column(Integer, primary_key=True, index=True)
-    Product_id = Column(Integer, ForeignKey("Product.id"))
+    product_id = Column(Integer, ForeignKey("product.id"))
     alert_type = Column(String, nullable=False)
     message = Column(String, nullable=False)
     timestamp = Column(DateTime, default=func.now())
 
-    Product = relationship("Product", back_populates="alerts")
+    product = relationship("Product", back_populates="alerts")
 
 
-# =======================
-# Pydantic Schemas
-# =======================
+# ======================= Pydantic Schemas =======================
 
 # Product Create Schema
 class ProductCreate(BaseModel):
@@ -326,6 +330,7 @@ class ProductLocationResponse(ProductLocationCreate):
 
     class Config:
         from_attributes = True
+
 
 class ThresholdUpdate(BaseModel):
     threshold: float
