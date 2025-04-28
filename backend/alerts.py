@@ -14,18 +14,19 @@ from pydantic import BaseModel, EmailStr
 # Email Config
 conf = ConnectionConfig(
     MAIL_USERNAME="khalil.hannachi@retsci.com",
-    MAIL_PASSWORD="disk sxuk jjuy dqqs",
+    MAIL_PASSWORD="cviw fyba eola itjv",
     MAIL_FROM="khalil.hannachi@retsci.com",
     MAIL_PORT=587,
     MAIL_SERVER="smtp.gmail.com",
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False,
-    USE_CREDENTIALS=True
+    USE_CREDENTIALS=True,
+    VALIDATE_CERTS=False
 )
 async def send_email_alert(message_text: str):
     message = MessageSchema(
         subject="Master Data Alert",
-        recipients=["nermine.haouala@gmail.com"],  # You can list multiple emails
+        recipients=["khalilhannachi@outlook.com"],  # You can list multiple emails
         body=message_text,
         subtype="plain"
     )
