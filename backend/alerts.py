@@ -7,7 +7,8 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr
 import threading
 import asyncio
-
+from models import Product, ProductLocation, Alert, SalesForecast, Transaction,Campaign,DeliverySchedule,OrderProposal,Supplier,Location
+import time
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import BaseModel, EmailStr
 ##################################################################
@@ -158,6 +159,52 @@ def check_product_recall(db: Session):
             insert_alert(db, "product_recall", message, product.id)
     return product_recall_alerts
 
+
+# Function to check SKU Velocity Alert
+def check_sku_velocity_alert(db: Session):
+    sku_velocity_alerts = []
+    transactions = db.query(Transaction).all()
+    
+    product_sales = {}
+    
+    # Aggregate total sold quantity and count of days
+    for transaction in transactions:
+        if transaction.product_location_id not in product_sales:
+            product_sales[transaction.product_location_id] = {
+                'total_sold': 0,
+                'days_count': 0
+            }
+        product_sales[transaction.product_location_id]['total_sold'] += transaction.sold_quantity
+        product_sales[transaction.product_location_id]['days_count'] += 1
+
+    for product_location_id, sales_data in product_sales.items():
+        avg_sales_per_day = sales_data['total_sold'] / sales_data['days_count'] if sales_data['days_count'] else 0
+
+        # Fetch the corresponding forecast if it exists
+        forecast = db.query(SalesForecast).filter(
+            SalesForecast.product_location_id == product_location_id
+        ).order_by(SalesForecast.date.desc()).first()
+
+        if forecast:
+            expected_sales_per_day = forecast.forecasted_sales / 30 if forecast.forecasted_sales else 0  # assume monthly forecast
+            
+            if expected_sales_per_day > 0:
+                deviation_percentage = ((avg_sales_per_day - expected_sales_per_day) / expected_sales_per_day) * 100
+
+                # Trigger alert if deviation is greater than 20% up or down
+                if abs(deviation_percentage) > 20:
+                    product = forecast.product_location.product
+                    location = forecast.product_location.location
+                    message = (
+                        f"SKU Velocity Alert: {product.name} at {location.name} has a sales rate change of {deviation_percentage:.2f}% "
+                        f"(Avg Sales/Day: {avg_sales_per_day:.2f}, Expected: {expected_sales_per_day:.2f})"
+                    )
+                    sku_velocity_alerts.append(message)
+                    insert_alert(db, "sku_velocity", message, product.id)
+
+    return sku_velocity_alerts
+
+
 # Function to check sales alerts
 def check_sales_alert(db: Session):
     alerts = []
@@ -170,6 +217,9 @@ def check_sales_alert(db: Session):
             alerts.append(message)
             insert_alert(db, "sales", message, product.id)
     return alerts
+
+
+
 
 # Function to check over forecasting using BIAS
 def check_over_forecasting(db: Session):
@@ -189,40 +239,308 @@ def check_over_forecasting(db: Session):
             insert_alert(db, "forecast", message, product.id)
     return over_forecast_alerts
 
-# Function to check master data mismatch
-def check_master_data_mismatch(db: Session):
-    master_data_alerts = []
+
+def check_under_forecasting(db: Session):
+    alerts = []
+    forecasts = db.query(SalesForecast).all()
+
+    for forecast in forecasts:
+        if forecast.actual_sales > forecast.forecasted_sales * 1.2:  # 20% threshold
+            product = forecast.product_location.product
+            location = forecast.product_location.location
+            message = (
+                f"Forecast Underestimation Alert: {product.name} at {location.name} has higher actual sales "
+                f"than forecasted. Actual: {forecast.actual_sales}, Forecast: {forecast.forecasted_sales}"
+            )
+            alerts.append(message)
+            insert_alert(db, "forecast_under", message, product.id)
+    
+    return alerts
+
+def check_promotion_incoming(db: Session):
+    promotion_alerts = []
+    current_date = datetime.now().date()
+    promotions = db.query(Campaign).all()
+
+    for promo in promotions:
+        if promo.promotion_start_date and (0 <= (promo.promotion_start_date - current_date).days <= 7):
+            message = f"Promotion Incoming Alert: A promotion is starting soon on {promo.promotion_start_date}. Update forecasts accordingly."
+            promotion_alerts.append(message)
+            insert_alert(db, "promotion_incoming", message)
+    
+    return promotion_alerts
+
+def check_new_product_launch(db: Session):
+    launch_alerts = []
+    current_date = datetime.now().date()
     products = db.query(Product).all()
 
     for product in products:
-        # Missing Data
-        if not product.name or not product.launch_date:
-            message = f"Missing Data: Product '{product.name if product.name else 'Unnamed'}' is missing critical information."
-            master_data_alerts.append(message)
-            insert_alert(db, "master_data", message, product.id if product.id else None)
+        if product.launch_date and (0 <= (current_date - product.launch_date).days <= 30):
+            message = f"New Product Launch Alert: {product.name} launched recently on {product.launch_date}. Update forecasts and replenishment."
+            launch_alerts.append(message)
+            insert_alert(db, "new_product_launch", message, product.id)
+    
+    return launch_alerts
 
-        # Incorrect Input
+def check_seasonal_forecast_issue(db: Session):
+    seasonal_alerts = []
+    forecasts = db.query(SalesForecast).all()
+
+    for forecast in forecasts:
+        if forecast.seasonal_deviation_threshold and abs(forecast.actual_sales - forecast.forecasted_sales) > forecast.seasonal_deviation_threshold:
+            product = forecast.product_location.product
+            location = forecast.product_location.location
+            message = (
+                f"Seasonal Forecast Issue: {product.name} at {location.name} deviated from expected seasonal trend."
+            )
+            seasonal_alerts.append(message)
+            insert_alert(db, "seasonal_forecast_issue", message, product.id)
+    
+    return seasonal_alerts
+
+def check_year_over_year_deviation(db: Session):
+    yoy_alerts = []
+    forecasts = db.query(SalesForecast).all()
+
+    for forecast in forecasts:
+        if forecast.sales_last_year:
+            deviation = ((forecast.actual_sales - forecast.sales_last_year) / forecast.sales_last_year) * 100
+            if abs(deviation) > 20:  # 20% deviation threshold
+                product = forecast.product_location.product
+                location = forecast.product_location.location
+                message = (
+                    f"Y-O-Y Deviation Alert: {product.name} at {location.name} shows {deviation:.2f}% deviation from last year's sales."
+                )
+                yoy_alerts.append(message)
+                insert_alert(db, "yoy_deviation", message, product.id)
+    
+    return yoy_alerts
+
+#Replenishment-Related Alerts
+
+def check_delay_issue(db: Session):
+    delay_alerts = []
+    deliveries = db.query(DeliverySchedule).all()
+    current_date = datetime.now().date()
+
+    for delivery in deliveries:
+        if delivery.expected_delivery_date and delivery.expected_delivery_date < current_date and delivery.delivery_status != "Delivered":
+            product = delivery.product_location.product
+            location = delivery.product_location.location
+            message = f"Delay Issue: Delivery for {product.name} at {location.name} is delayed."
+            delay_alerts.append(message)
+            insert_alert(db, "delay_issue", message, product.id)
+    
+    return delay_alerts
+
+def check_damaged_goods(db: Session):
+    damage_alerts = []
+    transactions = db.query(Transaction).all()
+
+    for transaction in transactions:
+        if transaction.damaged_quantity and transaction.damaged_quantity > 0:
+            product = transaction.product_location.product
+            location = transaction.product_location.location
+            message = f"Damaged Goods Alert: {transaction.damaged_quantity} units of {product.name} at {location.name} damaged."
+            damage_alerts.append(message)
+            insert_alert(db, "damaged_goods", message, product.id)
+    
+    return damage_alerts
+
+def check_order_mismatch(db: Session):
+    mismatch_alerts = []
+    orders = db.query(OrderProposal).all()
+
+    for order in orders:
+        if order.expected_quantity and order.received_quantity and abs(order.expected_quantity - order.received_quantity) > order.mismatch_tolerance:
+            product = order.product_location.product
+            location = order.product_location.location
+            message = f"Order Mismatch Alert: {product.name} at {location.name} received {order.received_quantity} instead of {order.expected_quantity}."
+            mismatch_alerts.append(message)
+            insert_alert(db, "order_mismatch", message, product.id)
+    
+    return mismatch_alerts
+
+
+def check_quality_issue(db: Session):
+    quality_alerts = []
+    deliveries = db.query(DeliverySchedule).all()
+
+    for delivery in deliveries:
+        if delivery.delivery_status and delivery.delivery_status == "Rejected":
+            product = delivery.product_location.product
+            location = delivery.product_location.location
+            message = f"Quality Issue Alert: Delivery for {product.name} at {location.name} rejected due to quality issues."
+            quality_alerts.append(message)
+            insert_alert(db, "quality_issue", message, product.id)
+    
+    return quality_alerts
+
+
+def check_discontinued_product(db: Session):
+    discontinued_alerts = []
+    products = db.query(Product).all()
+
+    for product in products:
+        if product.lifecycle_status == "Discontinued":
+            message = f"Discontinued Product Alert: {product.name} is no longer available for replenishment."
+            discontinued_alerts.append(message)
+            insert_alert(db, "discontinued_product", message, product.id)
+    
+    return discontinued_alerts
+
+def check_order_cancelled(db: Session):
+    cancelled_alerts = []
+    orders = db.query(OrderProposal).all()
+
+    for order in orders:
+        if order.status and order.status.lower() == "cancelled":
+            product = order.product_location.product
+            location = order.product_location.location
+            message = f"Order Cancelled Alert: Order for {product.name} at {location.name} was cancelled."
+            cancelled_alerts.append(message)
+            insert_alert(db, "order_cancelled", message, product.id)
+    
+    return cancelled_alerts
+
+def check_lead_time_change(db: Session):
+    lead_time_alerts = []
+    orders = db.query(OrderProposal).all()
+
+    for order in orders:
+        if order.expected_lead_time and (order.received_date and order.order_date):
+            actual_lead_time = (order.received_date - order.order_date).days
+            if abs(order.expected_lead_time - actual_lead_time) > 5:  # more than 5 days difference
+                product = order.product_location.product
+                location = order.product_location.location
+                message = (
+                    f"Lead Time Alert: {product.name} at {location.name} lead time deviation. "
+                    f"Expected: {order.expected_lead_time} days, Actual: {actual_lead_time} days."
+                )
+                lead_time_alerts.append(message)
+                insert_alert(db, "lead_time_change", message, product.id)
+    
+    return lead_time_alerts
+
+def check_supplier_issues(db: Session):
+    supplier_alerts = []
+    suppliers = db.query(Supplier).all()
+
+    for supplier in suppliers:
+        if supplier.performance_score and supplier.performance_score < 70:
+            message = f"Supplier Alert: {supplier.name} performance score is low ({supplier.performance_score})."
+            supplier_alerts.append(message)
+            insert_alert(db, "supplier_alert", message)
+    
+    return supplier_alerts
+
+def check_supplier_performance(db: Session):
+    performance_alerts = []
+    suppliers = db.query(Supplier).all()
+
+    for supplier in suppliers:
+        if supplier.on_time_delivery_rate and supplier.on_time_delivery_rate < 80:
+            message = f"Supplier Performance Alert: {supplier.name} has low on-time delivery rate ({supplier.on_time_delivery_rate}%)."
+            performance_alerts.append(message)
+            insert_alert(db, "supplier_performance", message)
+    
+    return performance_alerts
+
+def check_supplier_contract_expiration(db: Session):
+    expiration_alerts = []
+    suppliers = db.query(Supplier).all()
+    current_date = datetime.now().date()
+
+    for supplier in suppliers:
+        if supplier.contract_end_date and (0 <= (supplier.contract_end_date - current_date).days <= 30):
+            message = f"Supplier Contract Expiration Alert: {supplier.name}'s contract ends on {supplier.contract_end_date}."
+            expiration_alerts.append(message)
+            insert_alert(db, "supplier_contract_expiration", message)
+    
+    return expiration_alerts
+
+def check_supplier_capacity(db: Session):
+    capacity_alerts = []
+    suppliers = db.query(Supplier).all()
+
+    for supplier in suppliers:
+        if supplier.current_capacity and supplier.min_capacity_threshold and supplier.current_capacity < supplier.min_capacity_threshold:
+            message = f"Supplier Capacity Alert: {supplier.name} capacity below minimum threshold."
+            capacity_alerts.append(message)
+            insert_alert(db, "supplier_capacity", message)
+    
+    return capacity_alerts
+
+
+def check_warehouse_capacity(db: Session):
+    warehouse_alerts = []
+    locations = db.query(Location).all()
+
+    for location in locations:
+        if location.current_stock_level and location.max_capacity and location.current_stock_level >= location.max_capacity * 0.9:
+            message = f"Warehouse Capacity Alert: {location.name} nearing full capacity."
+            warehouse_alerts.append(message)
+            insert_alert(db, "warehouse_capacity", message)
+    
+    return warehouse_alerts
+
+
+def check_missing_data(db: Session):
+    missing_data_alerts = []
+    products = db.query(Product).all()
+
+    for product in products:
+        missing_fields = []
+        
+        if not product.name:
+            missing_fields.append("Name")
+        if not product.launch_date:
+            missing_fields.append("Launch Date")
+        if not product.expiration_date:
+            missing_fields.append("Expiration Date")
+        if not product.lifecycle_status:
+            missing_fields.append("Lifecycle Status")
+
+        if missing_fields:
+            fields_str = ", ".join(missing_fields)
+            message = f"Missing Data: Product '{product.name if product.name else 'Unnamed'}' is missing fields: {fields_str}."
+            missing_data_alerts.append(message)
+            insert_alert(db, "master_data", message, product.id if product.id else None)
+    
+    return missing_data_alerts
+
+def check_incorrect_input(db: Session):
+    incorrect_input_alerts = []
+    products = db.query(Product).all()
+
+    for product in products:
         if product.launch_date and product.expiration_date:
             if product.launch_date > product.expiration_date:
-                message = f"Incorrect Input: Product '{product.name}' has launch date after expiration date."
-                master_data_alerts.append(message)
+                message = f"Incorrect Input: Product '{product.name}' has launch date ({product.launch_date}) after expiration date ({product.expiration_date})."
+                incorrect_input_alerts.append(message)
                 insert_alert(db, "master_data", message, product.id if product.id else None)
+    
+    return incorrect_input_alerts
 
-        # Return Alert
+def check_return_alerts(db: Session):
+    return_alerts = []
+    products = db.query(Product).all()
+
+    for product in products:
         if hasattr(product, 'is_returned') and product.is_returned:
             message = f"Return Alert: Product '{product.name}' was returned by a customer."
-            master_data_alerts.append(message)
+            return_alerts.append(message)
             insert_alert(db, "master_data", message, product.id if product.id else None)
-
-    for alert in master_data_alerts:
-        print(alert)
-
-    return master_data_alerts
+    
+    return return_alerts
 
 # Function to run all alerts
 def run_alerts():
     db = SessionLocal()
-    check_master_data_mismatch(db)
+    check_missing_data(db)
+    check_incorrect_input(db)
+    check_return_alerts(db)
     check_overstock(db)
     check_low_stock(db)
     check_stock_shrinkage(db)
@@ -233,19 +551,40 @@ def run_alerts():
     check_product_recall(db)
     check_sales_alert(db)
     check_over_forecasting(db)
-    
+    check_sku_velocity_alert(db)
+    check_under_forecasting(db)
+    check_new_product_launch(db)
+    check_seasonal_forecast_issue(db)
+    check_year_over_year_deviation(db)
+    check_delay_issue(db)
+    check_damaged_goods(db)
+    check_order_mismatch(db)
+    check_quality_issue(db)
+    check_discontinued_product(db)
+    check_order_cancelled(db)
+    check_lead_time_change(db)
+    check_supplier_issues(db)
+    check_supplier_performance(db)
+    check_supplier_contract_expiration(db)
+    check_supplier_capacity(db)
+    check_warehouse_capacity(db)
+    check_promotion_incoming(db)
     db.close()
 
 # Scheduling the task to run every minute
+
 def start_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(run_alerts, 'interval', minutes=1)
+    scheduler.add_job(run_alerts, 'interval', minutes=15)
     scheduler.start()
+    print("Scheduler started...")
 
 if __name__ == "__main__":
+    run_alerts()  # <-- MANUAL FIRST RUN to trigger all alerts immediately
     start_scheduler()
+
     try:
         while True:
-            pass
+            time.sleep(10)  # sleep 10s just to keep the script alive
     except (KeyboardInterrupt, SystemExit):
         pass
