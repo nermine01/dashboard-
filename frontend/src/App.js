@@ -5,7 +5,7 @@ import AlertSummary from "./components/frontend/AlertSummary";
 import AlertFilters from "./components/frontend/AlertFilters";
 import AlertDetails from "./components/frontend/AlertDetailsModal";
 import { ALERT_TYPE_LABELS, CATEGORY_MAP, getReadAlertsFromStorage, saveReadAlertToStorage } from "./utils/alertUtils";
-
+import AlertAnalyticsAccordion from "./components/frontend/AlertAnalyticsAccordion";
 function App() {
   const [activeTab, setActiveTab] = useState("All Alerts");
   const [alerts, setAlerts] = useState([]);
@@ -228,6 +228,8 @@ function App() {
             categoryCounts={categoryCounts}
             onSummaryClick={(category) => setTypeFilter(category)}
           />
+
+          <AlertAnalyticsAccordion alerts={alerts} filters={{priorityFilter, categoryFilter, typeFilter, locationFilter}} />
 
           <AlertFilters
             activeTab={activeTab}
