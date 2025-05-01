@@ -75,6 +75,9 @@ function App() {
                     ? ["Supplier"]
                     : productIdToGroupPath[alertObj.product_id] || ["Unknown"];
 
+                const priorityLevels = ["High", "Medium", "Low"];
+                const randomPriority = priorityLevels[Math.floor(Math.random() * priorityLevels.length)];
+
                 parsedAlerts.push({
                   id: alertObj.id,
                   type: CATEGORY_MAP[finalKey]?.type || "info",
@@ -90,6 +93,7 @@ function App() {
                       label,
                       color: label.toLowerCase().replace(/\s+/g, "-"),
                     })) || []),
+                    { label: randomPriority, color: randomPriority.toLowerCase() }
                   ],
                   time: new Date(alertObj.timestamp).toLocaleString(),
                   isNew: !readAlerts.includes(alertObj.id),

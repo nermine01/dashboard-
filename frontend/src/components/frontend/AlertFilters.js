@@ -163,25 +163,37 @@ function AlertFilters({
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <Dropdown label="Priority" items={["High", "Medium", "Low"]} onSelect={setPriorityFilter} />
+          <Dropdown
+            label="Priority"
+            items={["High", "Medium", "Low"]}
+            onSelect={(value) => setPriorityFilter(value === "All" ? null : value)}
+          />
 
           <Dropdown
             label="Category"
             items={Object.keys(categoryToAlertTypes)}
-            onSelect={handleCategorySelect}
+            onSelect={(value) => {
+              if (value === "All") {
+                setCategoryFilter(null);
+                setFilteredAlertTypes([]);
+                setTypeFilter(null);
+              } else {
+                handleCategorySelect(value);
+              }
+            }}
           />
 
           <Dropdown
             label="Alert Type"
             items={filteredAlertTypes}
-            onSelect={(value) => setTypeFilter(value.replace(/\s+/g, "_").toLowerCase())}
+            onSelect={(value) => setTypeFilter(value === "All" ? null : value.replace(/\s+/g, "_").toLowerCase())}
           />
 
           {groupData ? (
             <NestedDropdown
               label="Product Location"
               groups={groupData}
-              onSelect={setLocationFilter}
+              onSelect={(value) => setLocationFilter(value === "All" ? null : value)}
             />
           ) : (
             <Dropdown
