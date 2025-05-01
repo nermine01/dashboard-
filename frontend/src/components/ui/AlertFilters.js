@@ -1,7 +1,8 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SearchIcon } from "./Icons";
 import Dropdown from "./Dropdown";
+import NestedDropdown from "./NestedDropdown";
 
 const categoryToAlertTypes = {
   "Stock": [
@@ -56,12 +57,82 @@ function AlertFilters({
 }) {
   const tabs = ["All Alerts", "Unread", "Reviewed", "Resolved", "Critical"];
   const [filteredAlertTypes, setFilteredAlertTypes] = useState([]);
+  const [groupData, setGroupData] = useState(null);
 
   const handleCategorySelect = (selectedCategory) => {
     setCategoryFilter(selectedCategory);
     setFilteredAlertTypes(categoryToAlertTypes[selectedCategory] || []);
     setTypeFilter(null); // Reset alert type when category changes
   };
+
+  useEffect(() => {
+    fetch("http://localhost:8000/products/groups")
+      .then((res) => res.json())
+      .then((data) => {
+        // Build nested tree structure:
+        // {
+        //   group1Name: {
+        //     group2Name: {
+        //       group3Name: {
+        //         group4Name: [product names]
+        //       }
+        //     }
+        //   }
+        // }
+        const tree = {};
+
+        data.forEach((product) => {
+          const g1 = product.group1;
+          const g2 = product.group2;
+          const g3 = product.group3;
+          const g4 = product.group4;
+          const productName = product.product_name;
+
+          if (!g1) return;
+
+          if (!tree[g1]) tree[g1] = {};
+          if (g2) {
+            if (!tree[g1][g2]) tree[g1][g2] = {};
+            if (g3) {
+              if (!tree[g1][g2][g3]) tree[g1][g2][g3] = {};
+              if (g4) {
+                if (!tree[g1][g2][g3][g4]) tree[g1][g2][g3][g4] = new Set();
+                tree[g1][g2][g3][g4].add(productName);
+              } else {
+                // No group4, add product to group3 level
+                if (!tree[g1][g2][g3]._products) tree[g1][g2][g3]._products = new Set();
+                tree[g1][g2][g3]._products.add(productName);
+              }
+            } else {
+              // No group3, add product to group2 level
+              if (!tree[g1][g2]._products) tree[g1][g2]._products = new Set();
+              tree[g1][g2]._products.add(productName);
+            }
+          } else {
+            // No group2, add product to group1 level
+            if (!tree[g1]._products) tree[g1]._products = new Set();
+            tree[g1]._products.add(productName);
+          }
+        });
+
+        // Convert all sets to arrays for products
+        function convertSetsToArrays(obj) {
+          Object.entries(obj).forEach(([key, value]) => {
+            if (value instanceof Set) {
+              obj[key] = Array.from(value);
+            } else if (typeof value === "object") {
+              convertSetsToArrays(value);
+            }
+          });
+        }
+        convertSetsToArrays(tree);
+
+        setGroupData(tree);
+      })
+      .catch((error) => {
+        console.error("Error fetching product groups:", error);
+      });
+  }, []);
 
   return (
     <div className="mt-8 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -100,18 +171,25 @@ function AlertFilters({
             onSelect={handleCategorySelect}
           />
 
-<Dropdown
-  label="Alert Type"
-  items={filteredAlertTypes}
-  onSelect={(value) => setTypeFilter(value.replace(/\s+/g, "_").toLowerCase())}
-/>
-
-
           <Dropdown
-            label="Product Location"
-            items={["Group 1", "Group 2", "Group 3", "Group 4"]}
-            onSelect={setLocationFilter} // ✅ Now correctly updates location filter
+            label="Alert Type"
+            items={filteredAlertTypes}
+            onSelect={(value) => setTypeFilter(value.replace(/\s+/g, "_").toLowerCase())}
           />
+
+          {groupData ? (
+            <NestedDropdown
+              label="Product Location"
+              groups={groupData}
+              onSelect={setLocationFilter}
+            />
+          ) : (
+            <Dropdown
+              label="Product Location"
+              items={["Loading..."]}
+              onSelect={() => {}}
+            />
+          )}
         </div>
       </div>
     </div>

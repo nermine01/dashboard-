@@ -37,9 +37,13 @@ useEffect(() => {
     setIsOpen(false);
     if (onSelect) {
       if (item === "All") {
-        onSelect(null); // Signal: show all alerts
+        onSelect(item); // Signal: show all alerts
+        console.log(item);
+        // setSelected("All");
       } else {
         onSelect(item); // Signal: show filtered alerts
+
+        console.log(item);
       }
     }
   };

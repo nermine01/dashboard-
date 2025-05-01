@@ -81,6 +81,34 @@ def update_embedded_threshold(alert_id: int, update: ThresholdUpdate, db: Sessio
     db.refresh(alert)
     return {"message": f"{label} threshold updated", "new_message": alert.message}
 
+@app.get("/products/groups")
+def get_product_groups(db: Session = Depends(get_db)):
+    products = db.query(models.Product).all()
+    results = []
+
+    for product in products:
+        group4 = product.category
+        if not group4:
+            continue  # Skip if no category
+
+        group3 = group4.group3
+        group2 = group3.group2 if group3 else None
+        group1 = group2.group1 if group2 else None
+
+        # Ensure all group levels exist before appending
+        if not (group1 and group2 and group3):
+            continue
+
+        results.append({
+            "product_id": product.id,
+            "product_name": product.name,
+            "group1": group1.name,
+            "group2": group2.name,
+            "group3": group3.name,
+            "group4": group4.name
+        })
+
+    return results
 
 
 # Run the application through Python command (no need for command line uvicorn)

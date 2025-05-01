@@ -39,6 +39,11 @@ async def send_email_alert(message_text: str):
 
 # Function to insert alerts into the database
 def insert_alert(db: Session, alert_type: str, message: str, product_id: int = None):
+    # Limit to max 10 alerts per alert_type
+    existing_alerts_count = db.query(Alert).filter(Alert.alert_type == alert_type).count()
+    if existing_alerts_count >= 10:
+        return None  # Do not insert more than 10 alerts of the same type
+
     alert = Alert(
         product_id=product_id,
         alert_type=alert_type,
@@ -153,7 +158,7 @@ def check_product_recall(db: Session):
     product_locations = db.query(ProductLocation).all()
     for product_location in product_locations:
         product = product_location.product
-        if 'Recall' in product.name:
+        if product.recall_status:  # Use recall_status boolean field instead of name check
             message = f"Product Recall Alert: {product.name} at {product_location.location.name} has been recalled."
             product_recall_alerts.append(message)
             insert_alert(db, "product_recall", message, product.id)
@@ -538,37 +543,41 @@ def check_return_alerts(db: Session):
 # Function to run all alerts
 def run_alerts():
     db = SessionLocal()
-    check_missing_data(db)
-    check_incorrect_input(db)
-    check_return_alerts(db)
-    check_overstock(db)
-    check_low_stock(db)
-    check_stock_shrinkage(db)
-    check_near_expiration(db)
-    check_near_end_of_life(db)
-    check_sufficient_stock(db)
-    check_stocktaking(db)
-    check_product_recall(db)
-    check_sales_alert(db)
-    check_over_forecasting(db)
-    check_sku_velocity_alert(db)
-    check_under_forecasting(db)
-    check_new_product_launch(db)
-    check_seasonal_forecast_issue(db)
-    check_year_over_year_deviation(db)
-    check_delay_issue(db)
-    check_damaged_goods(db)
-    check_order_mismatch(db)
-    check_quality_issue(db)
-    check_discontinued_product(db)
-    check_order_cancelled(db)
-    check_lead_time_change(db)
-    check_supplier_issues(db)
-    check_supplier_performance(db)
-    check_supplier_contract_expiration(db)
-    check_supplier_capacity(db)
-    check_warehouse_capacity(db)
-    check_promotion_incoming(db)
+    alert_functions = [
+        check_missing_data,
+        check_incorrect_input,
+        check_return_alerts,
+        check_overstock,
+        check_low_stock,
+        check_stock_shrinkage,
+        check_near_expiration,
+        check_near_end_of_life,
+        check_sufficient_stock,
+        check_stocktaking,
+        check_product_recall,
+        check_sales_alert,
+        check_over_forecasting,
+        check_sku_velocity_alert,
+        check_under_forecasting,
+        check_new_product_launch,
+        check_seasonal_forecast_issue,
+        check_year_over_year_deviation,
+        check_delay_issue,
+        check_damaged_goods,
+        check_order_mismatch,
+        check_quality_issue,
+        check_discontinued_product,
+        check_order_cancelled,
+        check_lead_time_change,
+        check_supplier_issues,
+        check_supplier_performance,
+        check_supplier_contract_expiration,
+        check_supplier_capacity,
+        check_warehouse_capacity,
+        check_promotion_incoming,
+    ]
+    for func in alert_functions:
+        func(db)
     db.close()
 
 # Scheduling the task to run every minute

@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import Header from "./components/ui/Header";
 import AlertSummary from "./components/ui/AlertSummary";
 import AlertFilters from "./components/ui/AlertFilters";
-import AlertList from "./components/ui/AlertList";
 import AlertDetails from "./pages/AlertDetails";
 
 const ALERT_TYPE_LABELS = {
@@ -35,7 +34,7 @@ const ALERT_TYPE_LABELS = {
   supplier_contract_expiration: "Supplier Contract Expiration",
   supplier_capacity: "Supplier Capacity Alert",
   warehouse_capacity: "Warehouse Capacity Alert",
-  master_data: "Master Data Issue",
+  master_data: "Master Data Issue" || "Data Input",
   
 };
 
@@ -105,80 +104,94 @@ function App() {
   const [locationFilter, setLocationFilter] = useState(null); // ✅ NEW
 
   useEffect(() => {
-    fetch("http://localhost:8000/alerts")
+    // Fetch product groups to map productId to group names
+    fetch("http://localhost:8000/products/groups")
       .then((res) => res.json())
-      .then((data) => {
-        const readAlerts = getReadAlertsFromStorage();
-        const parsedAlerts = [];
+      .then((groupData) => {
+        // Build map productId -> full group path array
+        const productIdToGroupPath = {};
+        groupData.forEach((product) => {
+          productIdToGroupPath[product.product_id] = [
+            product.group1,
+            product.group2,
+            product.group3,
+            product.group4,
+          ].filter(Boolean);
+        });
 
-        for (const categoryKey in data.alerts) {
-          const categoryAlerts = data.alerts[categoryKey];
+        fetch("http://localhost:8000/alerts")
+          .then((res) => res.json())
+          .then((data) => {
+            const readAlerts = getReadAlertsFromStorage();
+            const parsedAlerts = [];
 
-          categoryAlerts.forEach((alertObj) => {
-            let typeLabel = "";
-            if (categoryKey === "near_expiration") {
-              typeLabel = "Near Expiration";
-            } else if (categoryKey === "near_end_of_life") {
-              typeLabel = "Near End of Life Period";
-            } else if (categoryKey === "forecast") {
-              const match = alertObj.message.match(/^(.*?) Alert:/i);
-              typeLabel = match ? match[1].trim() : "Forecast Alert";
-            } 
-            else if (categoryKey === "master_data") {
-              if (alertObj.message.toLowerCase().includes("missing data")) {
-                typeLabel = "Missing Data";
-              } else if (alertObj.message.toLowerCase().includes("incorrect input")) {
-                typeLabel = "Incorrect Input";
-              } else {
-                typeLabel = "Master Data Issue"; // fallback
-              } 
-            }else {
-              typeLabel =
-                ALERT_TYPE_LABELS[categoryKey] ||
-                categoryKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+            for (const categoryKey in data.alerts) {
+              const categoryAlerts = data.alerts[categoryKey];
+
+              categoryAlerts.forEach((alertObj) => {
+                let typeLabel = "";
+                if (categoryKey === "near_expiration") {
+                  typeLabel = "Near Expiration";
+                } else if (categoryKey === "near_end_of_life") {
+                  typeLabel = "Near End of Life Period";
+                } else if (categoryKey === "forecast") {
+                  const match = alertObj.message.match(/^(.*?) Alert:/i);
+                  typeLabel = match ? match[1].trim() : "Forecast Alert";
+                } 
+                else if (categoryKey === "master_data") {
+                  if (alertObj.message.toLowerCase().includes("missing data")) {
+                    typeLabel = "Missing Data";
+                  } else if (alertObj.message.toLowerCase().includes("incorrect input")) {
+                    typeLabel = "Incorrect Input";
+                  } else {
+                    typeLabel = "Master Data Issue"; // fallback
+                  } 
+                }else {
+                  typeLabel =
+                    ALERT_TYPE_LABELS[categoryKey] ||
+                    categoryKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+                }
+
+                const finalKey =
+                categoryKey === "master_data"
+                  ? (typeLabel.toLowerCase().replace(/\s+/g, "_"))  // missing_data or incorrect_input
+                  : categoryKey;
+
+                // Map productId to full group path for location
+                const locationPath = alertObj.product_id === null ? ["Supplier"] : (productIdToGroupPath[alertObj.product_id] || ["Unknown"]);
+
+                parsedAlerts.push({
+                  id: alertObj.id,
+                  type: CATEGORY_MAP[finalKey]?.type || "info",
+                  title: `${typeLabel} Alert`,
+                  description: alertObj.message,
+                  tags: [
+                    { label: typeLabel, color: "blue" },
+                    { label: finalKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()), color: "gray" },
+                    ...(CATEGORY_MAP[finalKey]?.tags.map((label) => ({
+                      label,
+                      color: label.toLowerCase().replace(/\s+/g, "-"),
+                    })) || []),
+                  ],
+                  time: new Date(alertObj.timestamp).toLocaleString(),
+                  isNew: !readAlerts.includes(alertObj.id),
+                  currentStock: 0,
+                  threshold: 0,
+                  location: locationPath,
+                  productName: alertObj.product_id === null ? "Supplier Alert" : "Unknown",
+                  productId: alertObj.product_id,
+                });
+              });
             }
 
-            const tags = [
-              { label: typeLabel, color: "blue" }, // e.g. "Near Expiration"
-              { label: categoryKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()), color: "gray" }
-            ];
-            
-
-            const finalKey =
-            categoryKey === "master_data"
-              ? (typeLabel.toLowerCase().replace(/\s+/g, "_"))  // missing_data or incorrect_input
-              : categoryKey;
-          
-          parsedAlerts.push({
-            id: alertObj.id,
-            type: CATEGORY_MAP[finalKey]?.type || "info",
-            title: `${typeLabel} Alert`,
-            description: alertObj.message,
-            tags: [
-              { label: typeLabel, color: "blue" },
-              { label: finalKey.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()), color: "gray" },
-              ...(CATEGORY_MAP[finalKey]?.tags.map((label) => ({
-                label,
-                color: label.toLowerCase().replace(/\s+/g, "-"),
-              })) || []),
-            ],
-            time: new Date(alertObj.timestamp).toLocaleString(),
-            isNew: !readAlerts.includes(alertObj.id),
-            currentStock: 0,
-            threshold: 0,
-            location: alertObj.product_id === null ? "Supplier" : "Warehouse A",
-            productName: alertObj.product_id === null ? "Supplier Alert" : "Unknown",
-            productId: alertObj.product_id,
+            setAlerts(parsedAlerts);
+          })
+          .catch((error) => {
+            console.error("Error fetching alerts:", error);
           });
-          
-            
-          });
-        }
-
-        setAlerts(parsedAlerts);
       })
       .catch((error) => {
-        console.error("Error fetching alerts:", error);
+        console.error("Error fetching product groups:", error);
       });
   }, []);
 
@@ -232,7 +245,9 @@ function App() {
 
     const matchesLocation =
       !locationFilter ||
-      alert.location.toLowerCase().includes(locationFilter.toLowerCase());
+      (Array.isArray(alert.location)
+        ? alert.location.some(loc => loc.toLowerCase().includes(locationFilter.toLowerCase()))
+        : alert.location.toLowerCase().includes(locationFilter.toLowerCase()));
 
     const matchesTab =
       activeTab === "All Alerts" ||
