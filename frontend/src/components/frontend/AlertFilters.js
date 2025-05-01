@@ -135,23 +135,23 @@ function AlertFilters({
   }, []);
 
   return (
-    <div className="mt-8 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-      <div className="flex space-x-1 rounded-lg border border-gray-200 p-1">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            className={`px-3 py-1.5 text-sm rounded-md ${
-              activeTab === tab ? "bg-blue-500 text-white" : "hover:bg-gray-100"
-            }`}
-            onClick={() => setActiveTab(tab)}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+    <div className="mt-8 mb-6 flex flex-col gap-4">
+      <div className="flex flex-row items-center justify-between gap-4 w-full">
+        <div className="flex space-x-1 rounded-lg border border-gray-200 p-1 flex-grow max-w-[600px]">
+          {tabs.map((tab) => (
+            <button
+              key={tab}
+              className={`px-3 py-1.5 text-sm rounded-md ${
+                activeTab === tab ? "bg-blue-500 text-white" : "hover:bg-gray-100"
+              }`}
+              onClick={() => setActiveTab(tab)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
-      <div className="flex flex-col md:flex-row gap-2">
-        <div className="relative w-full md:w-64">
+        <div className="relative w-64 flex-shrink-0">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
           <input
             type="search"
@@ -161,8 +161,10 @@ function AlertFilters({
             className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
+      </div>
 
-        <div className="flex gap-2 flex-wrap">
+      <div className="flex flex-row items-center gap-2 w-full">
+        <div className="flex flex-row gap-2 flex-grow">
           <Dropdown
             label="Priority"
             items={["High", "Medium", "Low"]}

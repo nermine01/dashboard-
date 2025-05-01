@@ -198,6 +198,12 @@ function App() {
 
   const openAlertModal = (alert) => {
     setSelectedAlert(alert);
+    // Mark alert as read in local storage and update alert state
+    saveReadAlertToStorage(alert.id);
+    const updatedAlerts = alerts.map((a) =>
+      a.id === alert.id ? { ...a, isNew: false } : a
+    );
+    setAlerts(updatedAlerts);
   };
 
   const closeAlertModal = () => {
