@@ -8,6 +8,9 @@ import logging
 import models, schemas, crud
 from database import get_db
 from schemas import ThresholdUpdate
+from sqlalchemy.orm import joinedload
+from models import Product, ProductLocation
+
 
 from alerts import (
     check_overstock,
@@ -34,16 +37,35 @@ app.add_middleware(
 from models import Alert
 @app.get("/alerts")
 def get_all_alerts(db: Session = Depends(get_db)):
-    alerts = db.query(Alert).all()
+    alerts = (
+        db.query(Alert)
+        .options(
+            joinedload(Alert.product)
+            .joinedload(Product.product_locations)
+            .joinedload(ProductLocation.location)
+        )
+        .all()
+    )
 
     categorized_alerts = {}
 
     for alert in alerts:
+        product = alert.product
+        product_location = product.product_locations[0] if product and product.product_locations else None
+
         alert_data = {
             "id": alert.id,
             "message": alert.message,
             "timestamp": alert.timestamp.isoformat(),
-            "product_id": alert.product_id
+            "product_id": alert.product_id,
+            "productName": product.name if product else "Unknown",
+            "currentStock": product_location.stock_level if product_location else 0,
+            "threshold": product_location.reorder_point if product_location else 0,
+            "location": product_location.location.name if product_location and product_location.location else "Unknown",
+            "type": alert.alert_type,
+            "title": alert.alert_type,
+            "description": alert.message,
+            "time": alert.timestamp.isoformat()
         }
 
         if alert.alert_type not in categorized_alerts:

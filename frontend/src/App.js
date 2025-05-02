@@ -69,11 +69,12 @@ function App() {
                   categoryKey === "master_data"
                     ? typeLabel.toLowerCase().replace(/\s+/g, "_")
                     : categoryKey;
-
-                const locationPath =
-                  alertObj.product_id === null
+                    const locationPath = alertObj.location
+                    ? [alertObj.location]
+                    : alertObj.product_id === null
                     ? ["Supplier"]
                     : productIdToGroupPath[alertObj.product_id] || ["Unknown"];
+  
 
                 const priorityLevels = ["High", "Medium", "Low"];
                 const randomPriority = priorityLevels[Math.floor(Math.random() * priorityLevels.length)];
@@ -97,10 +98,10 @@ function App() {
                   ],
                   time: new Date(alertObj.timestamp).toLocaleString(),
                   isNew: !readAlerts.includes(alertObj.id),
-                  currentStock: 0,
-                  threshold: 0,
+                  currentStock: alertObj.currentStock || 0,
+                  threshold:  alertObj.threshold || 0,
                   location: locationPath,
-                  productName: alertObj.product_id === null ? "Supplier Alert" : "Unknown",
+                  productName: alertObj.productName,
                   productId: alertObj.product_id,
                 });
               });
