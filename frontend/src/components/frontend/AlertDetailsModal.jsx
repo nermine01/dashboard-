@@ -5,6 +5,7 @@ const AlertDetailsModal = ({ alert, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   if (!alert) return null;
 
@@ -12,6 +13,7 @@ const AlertDetailsModal = ({ alert, onClose }) => {
     setLoading(true);
     setSuccess(false);
     setError(false);
+    setErrorMsg("");
 
     try {
       const response = await fetch(
@@ -29,12 +31,15 @@ const AlertDetailsModal = ({ alert, onClose }) => {
         const data = await response.json();
         setSuccess(true);
         alert.threshold = newThreshold;
-        alert.description = data.new_message || alert.description;
+        alert.message = data.new_message || alert.message;
       } else {
+        const errorData = await response.json();
         setError(true);
+        setErrorMsg(errorData.detail || "Update failed");
       }
     } catch (err) {
       setError(true);
+      setErrorMsg("Network or server error");
     } finally {
       setLoading(false);
     }
@@ -50,10 +55,12 @@ const AlertDetailsModal = ({ alert, onClose }) => {
         >
           &#x2715;
         </button>
+
         <h2 className="text-3xl font-extrabold mb-4 bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">
-          {alert.title}
+          {alert.title || alert.type?.replace(/_/g, " ").toUpperCase()}
         </h2>
-        <p className="text-gray-600 mb-6">{alert.description}</p>
+
+        <p className="text-gray-600 mb-6">{alert.message}</p>
 
         <div className="space-y-4">
           <DetailItem label="Alert Type" value={alert.type} />
@@ -91,9 +98,7 @@ const AlertDetailsModal = ({ alert, onClose }) => {
           )}
 
           {error && (
-            <p className="text-sm text-red-600 mt-2">
-              Failed to update threshold. Please try again.
-            </p>
+            <p className="text-sm text-red-600 mt-2">{errorMsg}</p>
           )}
         </div>
       </div>

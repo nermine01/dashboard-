@@ -78,7 +78,7 @@ def get_all_alerts(db: Session = Depends(get_db)):
 
 @app.put("/alerts/{alert_id}/update-threshold")
 def update_embedded_threshold(alert_id: int, update: ThresholdUpdate, db: Session = Depends(get_db)):
-    alert = db.query(models.Alert).filter(models.Alert.id == alert_id).first()
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
@@ -91,16 +91,19 @@ def update_embedded_threshold(alert_id: int, update: ThresholdUpdate, db: Sessio
     else:
         raise HTTPException(status_code=400, detail="Unsupported alert type")
 
-    pattern = rf"\({label}:\s*\d+\)"
-    new_part = f"({label}: {int(update.threshold)})"
+    # Build regex to find the label + value pair e.g. (Max: 30)
+    pattern = re.compile(rf"\({label}:\s*\d+\)", re.IGNORECASE)
+    new_segment = f"({label}: {int(update.threshold)})"
 
-    new_message = re.sub(pattern, new_part, alert.message)
-    if new_message == alert.message:
-        raise HTTPException(status_code=400, detail=f"No matching {label} threshold found in message")
+    # Replace only if a match is found
+    if pattern.search(alert.message):
+        alert.message = pattern.sub(new_segment, alert.message)
+    else:
+        raise HTTPException(status_code=400, detail=f"No matching '{label}' threshold found in message")
 
-    alert.message = new_message
     db.commit()
     db.refresh(alert)
+
     return {"message": f"{label} threshold updated", "new_message": alert.message}
 
 @app.get("/products/groups")
