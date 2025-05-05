@@ -4,37 +4,39 @@ import {
   DatabaseIcon,
 } from "lucide-react";
 
+import React from "react";
+
 const SummaryCard = ({ title, count, description, Icon, color, accentColor, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="overflow-hidden border-0 shadow-md bg-white hover:shadow-lg transition-shadow rounded-lg w-full max-w-[400px] cursor-pointer"
+      className="overflow-hidden border border-[#2b7886] shadow-md bg-white hover:shadow-xl transition-shadow rounded-xl w-full max-w-[400px] cursor-pointer"
     >
-      <div className="h-1 w-full" style={{ backgroundColor: accentColor }}></div>
-      <div className="p-4 pb-2">
+      <div className="h-1 w-full rounded-t-xl" style={{ backgroundColor: accentColor }}></div>
+      <div className="p-5 pb-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium flex items-center gap-2">
+          <h2 className="text-lg font-semibold flex items-center gap-3 text-[#041f3a]">
             <div
-              className="p-2 rounded-full"
-              style={{ backgroundColor: `${accentColor}1A` }}
+              className="p-3 rounded-full"
+              style={{ backgroundColor: `${accentColor}33` }}
             >
-              <Icon className="h-5 w-5" style={{ color: accentColor }} />
+              <Icon className="h-6 w-6" style={{ color: accentColor }} />
             </div>
             {title}
           </h2>
         </div>
       </div>
-      <div className="px-4 pb-2">
+      <div className="px-5 pb-3">
         <div className="flex flex-col">
-          <span className="text-4xl font-bold" style={{ color }}>{count}</span>
-          <p className="text-sm text-[#595959]">{description}</p>
+          <span className="text-5xl font-extrabold" style={{ color }}>{count}</span>
+          <p className="text-sm text-[#595959] mt-1">{description}</p>
         </div>
       </div>
-      <div className="px-4 pb-4">
+      <div className="px-5 pb-5">
         <span
-          className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium"
+          className="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
           style={{
-            backgroundColor: `${accentColor}1A`,
+            backgroundColor: `${accentColor}33`,
             color: accentColor,
           }}
         >

@@ -200,14 +200,14 @@ function App() {
       <div className="min-h-screen bg-gray-100 flex flex-col">
         <Header criticalCount={criticalCount} criticalAlerts={criticalAlerts} />
         <main className="flex-1 max-w-7xl mx-auto px-4 py-6 w-full">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">
-              Alert Dashboard for Forecasting and Replenishment
-            </h2>
-            <p className="text-gray-500">
-              Monitor and manage all retail alerts in one place.
-            </p>
-          </div>
+      <div className="mb-8 font-sans">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">
+          Alert Dashboard for Forecasting and Replenishment
+        </h2>
+        <p className="text-gray-500">
+          Monitor and manage all retail alerts in one place.
+        </p>
+      </div>
 
           <AlertSummary categoryCounts={categoryCounts} onSummaryClick={(category) => setTypeFilter(category)} />
           <AlertAnalyticsAccordion alerts={alerts} filters={{ priorityFilter, categoryFilter, typeFilter, locationFilter }} />
@@ -223,49 +223,59 @@ function App() {
           />
 
           <div className="grid gap-4 mt-6">
-            {filteredAlerts.length === 0 ? (
-              <div className="text-gray-500">No alerts to show.</div>
-            ) : (
-              filteredAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className={`bg-white rounded-xl shadow p-4 border-l-4 ${
-                    alert.type === "critical"
-                      ? "border-red-500"
-                      : alert.type === "warning"
-                      ? "border-yellow-400"
-                      : "border-blue-400"
-                  }`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-semibold">{alert.title}</h3>
-                      <p className="text-gray-600">{alert.description}</p>
-                      <div className="text-sm text-gray-500 mt-1">{alert.time}</div>
-                      <div className="flex flex-wrap mt-2 gap-2">
-                        {alert.tags.map((tag, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 text-xs rounded-full bg-gray-200 text-gray-800"
-                          >
-                            {tag.label}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col items-end gap-2">
-                      <button
-                        onClick={() => openAlertModal(alert)}
-                        className="text-blue-600 hover:underline text-sm"
-                      >
-                        Show More
-                      </button>
+          {filteredAlerts.length === 0 ? (
+            <div className="text-gray-500">No alerts to show.</div>
+          ) : (
+            filteredAlerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={`bg-white rounded-xl shadow p-4 border-l-4 ${
+                  alert.type === "critical"
+                    ? "border-red-500"
+                    : alert.type === "warning"
+                    ? "border-yellow-400"
+                    : "border-blue-400"
+                }`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-lg font-semibold">{alert.title}</h3>
+                    <p className="text-gray-600">{alert.description}</p>
+                    <div className="text-sm text-gray-500 mt-1">{alert.time}</div>
+                    <div className="flex flex-wrap mt-2 gap-2">
+                      {alert.tags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className={`px-2 py-1 text-xs rounded-full ${
+                            tag.color === "blue"
+                              ? "bg-[#3eadc1]/20 text-[#3eadc1]"
+                              : tag.color === "red"
+                              ? "bg-red-100 text-red-600"
+                              : tag.color === "yellow"
+                              ? "bg-yellow-100 text-yellow-600"
+                              : tag.color === "gray"
+                              ? "bg-gray-100 text-gray-600"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {tag.label}
+                        </span>
+                      ))}
                     </div>
                   </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    <button
+                      onClick={() => openAlertModal(alert)}
+                      className="text-[#3eadc1] hover:underline text-sm font-semibold"
+                    >
+                      Show More
+                    </button>
+                  </div>
                 </div>
-              ))
-            )}
+              </div>
+            ))
+          )}
           </div>
 
           {selectedAlert && (

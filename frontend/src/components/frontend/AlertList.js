@@ -68,26 +68,26 @@ function AlertItem({ alert }) {
 
         <div className="flex sm:flex-col items-end gap-2 w-full sm:w-auto">
           <button
-            className="text-sm text-blue-600 hover:underline"
+            className="text-sm text-[#3eadc1] hover:underline"
             onClick={() => navigate(`/alerts/${id}`)}
           >
             Show more
           </button>
 
-          <div className="relative">
-            <button className="p-1 rounded-md hover:bg-gray-100">
-              <MoreVerticalIcon className="w-4 h-4" />
+          <div className="relative group">
+            <button className="p-1 rounded-md hover:bg-[#3eadc1]/20 transition-colors duration-200">
+              <MoreVerticalIcon className="w-4 h-4 text-[#3eadc1]" />
               <span className="sr-only">More options</span>
             </button>
 
-            <div className="hidden absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-md z-10 group-hover:block">
-              <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 first:rounded-t-lg">
+            <div className="hidden group-hover:block absolute right-0 mt-1 w-40 bg-white border border-[#2b7886] rounded-lg shadow-lg z-10">
+              <button className="w-full text-left px-3 py-2 text-sm text-[#041f3a] hover:bg-[#3eadc1]/20 first:rounded-t-lg transition-colors duration-200">
                 Mark as read
               </button>
-              <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100">
+              <button className="w-full text-left px-3 py-2 text-sm text-[#041f3a] hover:bg-[#3eadc1]/20 transition-colors duration-200">
                 Assign
               </button>
-              <button className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 last:rounded-b-lg">
+              <button className="w-full text-left px-3 py-2 text-sm text-[#041f3a] hover:bg-[#3eadc1]/20 last:rounded-b-lg transition-colors duration-200">
                 Resolve
               </button>
             </div>

@@ -69,16 +69,6 @@ function AlertFilters({
     fetch("http://localhost:8000/products/groups")
       .then((res) => res.json())
       .then((data) => {
-        // Build nested tree structure:
-        // {
-        //   group1Name: {
-        //     group2Name: {
-        //       group3Name: {
-        //         group4Name: [product names]
-        //       }
-        //     }
-        //   }
-        // }
         const tree = {};
 
         data.forEach((product) => {
@@ -99,23 +89,19 @@ function AlertFilters({
                 if (!tree[g1][g2][g3][g4]) tree[g1][g2][g3][g4] = new Set();
                 tree[g1][g2][g3][g4].add(productName);
               } else {
-                // No group4, add product to group3 level
                 if (!tree[g1][g2][g3]._products) tree[g1][g2][g3]._products = new Set();
                 tree[g1][g2][g3]._products.add(productName);
               }
             } else {
-              // No group3, add product to group2 level
               if (!tree[g1][g2]._products) tree[g1][g2]._products = new Set();
               tree[g1][g2]._products.add(productName);
             }
           } else {
-            // No group2, add product to group1 level
             if (!tree[g1]._products) tree[g1]._products = new Set();
             tree[g1]._products.add(productName);
           }
         });
 
-        // Convert all sets to arrays for products
         function convertSetsToArrays(obj) {
           Object.entries(obj).forEach(([key, value]) => {
             if (value instanceof Set) {
@@ -137,12 +123,14 @@ function AlertFilters({
   return (
     <div className="mt-8 mb-6 flex flex-col gap-4">
       <div className="flex flex-row items-center justify-between gap-4 w-full">
-        <div className="flex space-x-1 rounded-lg border border-gray-200 p-1 flex-grow max-w-[600px]">
+        <div className="flex justify-evenly space-x-1 rounded-lg border border-[#2b7886] p-1 flex-grow max-w-[600px] bg-white">
           {tabs.map((tab) => (
             <button
               key={tab}
-              className={`px-3 py-1.5 text-sm rounded-md ${
-                activeTab === tab ? "bg-blue-500 text-white" : "hover:bg-gray-100"
+              className={`px-4 py-2 text-sm rounded-md font-semibold transition-colors duration-200 w-24 text-[#041f3a] ${
+                activeTab === tab
+                  ? "bg-[#3eadc1] text-white shadow-md"
+                  : "bg-white hover:bg-[#3eadc1]/20"
               }`}
               onClick={() => setActiveTab(tab)}
             >
@@ -151,14 +139,14 @@ function AlertFilters({
           ))}
         </div>
 
-        <div className="relative w-64 flex-shrink-0">
-          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+        <div className="relative w-72 flex-shrink-0">
+          <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-[#3eadc1] w-5 h-5" />
           <input
             type="search"
             placeholder="Search alerts..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-12 pr-3 py-3 border border-[#2b7886] rounded-lg text-sm text-[#041f3a] focus:outline-none focus:ring-2 focus:ring-[#3eadc1] focus:border-[#3eadc1]"
           />
         </div>
       </div>
