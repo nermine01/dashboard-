@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router } from "react-router-dom";
 import Header from "./components/frontend/Header";
 import AlertSummary from "./components/frontend/AlertSummary";
 import AlertFilters from "./components/frontend/AlertFilters";
 import AlertDetails from "./components/frontend/AlertDetailsModal";
-import { ALERT_TYPE_LABELS, CATEGORY_MAP, getReadAlertsFromStorage, saveReadAlertToStorage } from "./utils/alertUtils";
 import AlertAnalyticsAccordion from "./components/frontend/AlertAnalyticsAccordion";
+import {
+  ALERT_TYPE_LABELS,
+  CATEGORY_MAP,
+  getReadAlertsFromStorage,
+  saveReadAlertToStorage,
+} from "./utils/alertUtils";
+
 function App() {
   const [activeTab, setActiveTab] = useState("All Alerts");
   const [alerts, setAlerts] = useState([]);
@@ -14,12 +20,9 @@ function App() {
   const [categoryFilter, setCategoryFilter] = useState(null);
   const [typeFilter, setTypeFilter] = useState(null);
   const [locationFilter, setLocationFilter] = useState(null);
-
-  // New state for modal
   const [selectedAlert, setSelectedAlert] = useState(null);
 
   useEffect(() => {
-    // Fetch product groups to map productId to group names
     fetch("http://localhost:8000/products/groups")
       .then((res) => res.json())
       .then((groupData) => {
@@ -69,12 +72,11 @@ function App() {
                   categoryKey === "master_data"
                     ? typeLabel.toLowerCase().replace(/\s+/g, "_")
                     : categoryKey;
-                    const locationPath = alertObj.location
-                    ? [alertObj.location]
-                    : alertObj.product_id === null
+
+                const locationPath =
+                  alertObj.product_id === null
                     ? ["Supplier"]
                     : productIdToGroupPath[alertObj.product_id] || ["Unknown"];
-  
 
                 const priorityLevels = ["High", "Medium", "Low"];
                 const randomPriority = priorityLevels[Math.floor(Math.random() * priorityLevels.length)];
@@ -94,14 +96,15 @@ function App() {
                       label,
                       color: label.toLowerCase().replace(/\s+/g, "-"),
                     })) || []),
-                    { label: randomPriority, color: randomPriority.toLowerCase() }
+                    { label: randomPriority, color: randomPriority.toLowerCase() },
                   ],
                   time: new Date(alertObj.timestamp).toLocaleString(),
                   isNew: !readAlerts.includes(alertObj.id),
                   currentStock: alertObj.currentStock || 0,
-                  threshold:  alertObj.threshold || 0,
-                  location: locationPath,
-                  productName: alertObj.productName,
+                  threshold: alertObj.threshold || 0,
+                  location: alertObj.location || "Unknown",      // for modal display
+                  nestedLocationPath: locationPath,              // for filtering
+                  productName: alertObj.productName || (alertObj.product_id === null ? "Supplier Alert" : "Unknown"),
                   productId: alertObj.product_id,
                 });
               });
@@ -109,30 +112,18 @@ function App() {
 
             setAlerts(parsedAlerts);
           })
-          .catch((error) => {
-            console.error("Error fetching alerts:", error);
-          });
+          .catch((error) => console.error("Error fetching alerts:", error));
       })
-      .catch((error) => {
-        console.error("Error fetching product groups:", error);
-      });
+      .catch((error) => console.error("Error fetching product groups:", error));
   }, []);
 
   const categoryCounts = {
     critical: alerts.filter((alert) => alert.type === "critical").length,
-    inventory: alerts.filter((alert) =>
-      alert.tags.some((tag) => tag.label.toLowerCase().includes("inventory"))
-    ).length,
-    forecast: alerts.filter((alert) =>
-      alert.tags.some((tag) => tag.label.toLowerCase().includes("forecast"))
-    ).length,
-    master: alerts.filter((alert) =>
-      alert.tags.some((tag) => tag.label.toLowerCase().includes("master"))
-    ).length,
+    inventory: alerts.filter((alert) => alert.tags.some((tag) => tag.label.toLowerCase().includes("inventory"))).length,
+    forecast: alerts.filter((alert) => alert.tags.some((tag) => tag.label.toLowerCase().includes("forecast"))).length,
+    master: alerts.filter((alert) => alert.tags.some((tag) => tag.label.toLowerCase().includes("master"))).length,
     other: alerts.filter((alert) =>
-      !alert.tags.some((tag) =>
-        ["inventory", "forecast"].includes(tag.label.toLowerCase())
-      )
+      !alert.tags.some((tag) => ["inventory", "forecast"].includes(tag.label.toLowerCase()))
     ).length,
   };
 
@@ -146,15 +137,11 @@ function App() {
 
     const matchesPriority =
       !priorityFilter ||
-      alert.tags.some((tag) =>
-        tag.label.toLowerCase().includes(priorityFilter.toLowerCase())
-      );
+      alert.tags.some((tag) => tag.label.toLowerCase().includes(priorityFilter.toLowerCase()));
 
     const matchesCategory =
       !categoryFilter ||
-      alert.tags.some((tag) =>
-        tag.label.toLowerCase().includes(categoryFilter.toLowerCase())
-      );
+      alert.tags.some((tag) => tag.label.toLowerCase().includes(categoryFilter.toLowerCase()));
 
     const matchesType =
       !typeFilter ||
@@ -166,9 +153,10 @@ function App() {
 
     const matchesLocation =
       !locationFilter ||
-      (Array.isArray(alert.location)
-        ? alert.location.some((loc) => loc.toLowerCase().includes(locationFilter.toLowerCase()))
-        : alert.location.toLowerCase().includes(locationFilter.toLowerCase()));
+      (Array.isArray(alert.nestedLocationPath) &&
+        alert.nestedLocationPath.some((loc) =>
+          loc.toLowerCase().includes(locationFilter.toLowerCase())
+        ));
 
     const matchesTab =
       activeTab === "All Alerts" ||
@@ -191,15 +179,11 @@ function App() {
       alert.id === id ? { ...alert, isNew: !isRead } : alert
     );
     setAlerts(updatedAlerts);
-
-    if (isRead) {
-      saveReadAlertToStorage(id);
-    }
+    if (isRead) saveReadAlertToStorage(id);
   };
 
   const openAlertModal = (alert) => {
     setSelectedAlert(alert);
-    // Mark alert as read in local storage and update alert state
     saveReadAlertToStorage(alert.id);
     const updatedAlerts = alerts.map((a) =>
       a.id === alert.id ? { ...a, isNew: false } : a
@@ -225,13 +209,8 @@ function App() {
             </p>
           </div>
 
-          <AlertSummary
-            categoryCounts={categoryCounts}
-            onSummaryClick={(category) => setTypeFilter(category)}
-          />
-
-          <AlertAnalyticsAccordion alerts={alerts} filters={{priorityFilter, categoryFilter, typeFilter, locationFilter}} />
-
+          <AlertSummary categoryCounts={categoryCounts} onSummaryClick={(category) => setTypeFilter(category)} />
+          <AlertAnalyticsAccordion alerts={alerts} filters={{ priorityFilter, categoryFilter, typeFilter, locationFilter }} />
           <AlertFilters
             activeTab={activeTab}
             setActiveTab={setActiveTab}
