@@ -45,6 +45,7 @@ function App() {
           .then((res) => res.json())
           .then((data) => {
             const readAlerts = getReadAlertsFromStorage();
+            const resolvedAlerts = getResolvedAlertsFromStorage();
             const parsedAlerts = [];
 
             for (const categoryKey in data.alerts) {
@@ -105,6 +106,7 @@ function App() {
                   ],
                   time: new Date(alertObj.timestamp).toLocaleString(),
                   isNew: !readAlerts.includes(alertObj.id),
+                  isResolved: resolvedAlerts.has(alertObj.id),
                   currentStock: alertObj.currentStock || 0,
                   threshold: alertObj.threshold || 0,
                   location: alertObj.location || "Unknown",      // for modal display
@@ -176,7 +178,7 @@ function App() {
         ));
 
         const matchesTab =
-        (activeTab === "All Alerts" && !resolvedAlertIds.has(alert.id)) ||
+        (activeTab === "All Alerts" && !resolvedAlertIds.has(alert.id) && alert.isNew) ||
         (activeTab === "Unread" && alert.isNew && !resolvedAlertIds.has(alert.id)) ||
         (activeTab === "Reviewed" && !alert.isNew && !resolvedAlertIds.has(alert.id)) ||
         (activeTab === "Critical" && alert.type === "critical" && !resolvedAlertIds.has(alert.id)) ||
@@ -294,28 +296,29 @@ function App() {
   <AlertDetails
     alert={selectedAlert}
     onClose={closeAlertModal}
-    onResolve={(alertId, newThreshold, newMessage) => {
-      // Save resolved state in localStorage
-      const prev = getResolvedAlertsFromStorage();
-      prev.add(alertId);
-      localStorage.setItem("resolvedAlerts", JSON.stringify([...prev]));
+            onResolve={(alertId, newThreshold, newMessage) => {
+              // Save resolved state in localStorage
+              const prev = getResolvedAlertsFromStorage();
+              prev.add(alertId);
+              localStorage.setItem("resolvedAlerts", JSON.stringify([...prev]));
 
-      // Update UI
-      setResolvedAlertIds(prev);
-      setAlerts((prevAlerts) =>
-        prevAlerts.map((alert) =>
-          alert.id === alertId
-            ? {
-                ...alert,
-                threshold: newThreshold,
-                description: newMessage,
-              }
-            : alert
-        )
-      );
+              // Update UI
+              setResolvedAlertIds(new Set(prev));
+              setAlerts((prevAlerts) =>
+                prevAlerts.map((alert) =>
+                  alert.id === alertId
+                    ? {
+                        ...alert,
+                        threshold: newThreshold,
+                        description: newMessage,
+                      }
+                    : alert
+                )
+              );
 
-      closeAlertModal();
-    }}
+              // Do not close modal automatically after setting threshold; close manually
+              // closeAlertModal();
+            }}
   />
 )}
 

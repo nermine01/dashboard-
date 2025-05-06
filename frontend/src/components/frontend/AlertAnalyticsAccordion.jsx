@@ -109,11 +109,21 @@ function AlertAnalyticsAccordion({ alerts }) {
     { name: "Quality", avg: 120, min: 30, max: 300 },
   ]
 
+  const getResolvedUnresolvedDistribution = () => {
+    const resolvedCount = alerts.filter(alert => alert.isResolved).length
+    const unresolvedCount = alerts.length - resolvedCount
+    return [
+      { name: "Resolved", value: resolvedCount },
+      { name: "Unresolved", value: unresolvedCount },
+    ]
+  }
+
   const severityDistribution = getAlertSeverityDistribution()
   const statusDistribution = getAlertStatusDistribution()
   const alertTrendData = getAlertTrendData()
   const alertResponseTime = getAlertResponseTime()
   const alertResolutionComparison = getAlertResolutionComparison()
+  const resolvedUnresolvedDistribution = getResolvedUnresolvedDistribution()
 
   return (
     <div className={styles.container}>
@@ -131,7 +141,7 @@ function AlertAnalyticsAccordion({ alerts }) {
       {isOpen && (
         <div className="bg-white">
           <div className={styles.tabContainer}>
-            {["Alert Severity", "Alert Status", "Alert Trends", "Response Time", "Comparison"].map((tab) => (
+            {["Alert Severity", "Alert Status", "Alert Trends", "Response Time", "Comparison", "Resolution"].map((tab) => (
               <button
                 key={tab}
                 className={activeTab === tab ? styles.activeTab : styles.inactiveTab}
@@ -312,11 +322,49 @@ function AlertAnalyticsAccordion({ alerts }) {
                 </div>
               </>
             )}
+
+            {/* Resolution Tab */}
+            {activeTab === "Resolution" && (
+              <>
+                <h3 className={styles.chartTitle}>Resolved vs Unresolved Alerts</h3>
+                <div className="h-[400px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={resolvedUnresolvedDistribution}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={140}
+                        innerRadius={60}
+                        stroke={COLORS.white}
+                        strokeWidth={2}
+                        paddingAngle={2}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {resolvedUnresolvedDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend
+                        verticalAlign="bottom"
+                        height={36}
+                        formatter={(value) => <span style={{ color: COLORS.darkBlue }}>{value}</span>}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
     </div>
   )
+
 }
 
-export default AlertAnalyticsAccordion
+export default AlertAnalyticsAccordion;
