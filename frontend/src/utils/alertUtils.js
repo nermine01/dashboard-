@@ -82,3 +82,23 @@ export const saveReadAlertToStorage = (id) => {
     localStorage.setItem("readAlerts", JSON.stringify(readAlerts));
   }
 };
+
+export const getResolvedAlertsFromStorage = () => {
+  const stored = localStorage.getItem("resolvedAlerts");
+  return stored ? new Set(JSON.parse(stored)) : new Set();
+};
+
+export const saveResolvedAlertToStorage = (id) => {
+  const resolvedAlerts = getResolvedAlertsFromStorage();
+  if (!resolvedAlerts.has(id)) {
+    resolvedAlerts.add(id);
+    localStorage.setItem("resolvedAlerts", JSON.stringify(Array.from(resolvedAlerts)));
+  }
+};
+export const removeResolvedAlertFromStorage = (id) => {
+  const resolvedAlerts = getResolvedAlertsFromStorage();
+  if (resolvedAlerts.has(id)) {
+    resolvedAlerts.delete(id);
+    localStorage.setItem("resolvedAlerts", JSON.stringify(Array.from(resolvedAlerts)));
+  }
+};

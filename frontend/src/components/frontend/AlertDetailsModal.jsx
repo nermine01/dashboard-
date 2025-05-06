@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const AlertDetailsModal = ({ alert, onClose, onResolve }) => {
   const [newThreshold, setNewThreshold] = useState(alert?.threshold || 0);
@@ -6,57 +6,53 @@ const AlertDetailsModal = ({ alert, onClose, onResolve }) => {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  
+  const [thresholdModified, setThresholdModified] = useState(false);
+
+  useEffect(() => {
+    // If alert is already resolved, prevent modifying again
+    const resolvedIds = JSON.parse(localStorage.getItem("resolvedAlerts") || "[]");
+    setThresholdModified(resolvedIds.includes(alert?.id));
+  }, [alert?.id]);
 
   if (!alert) return null;
 
   const handleSetThreshold = async () => {
-  setLoading(true);
-  setSuccess(false);
-  setError(false);
-  setErrorMsg("");
+    setLoading(true);
+    setSuccess(false);
+    setError(false);
+    setErrorMsg("");
 
-  try {
-    const payload = { threshold: newThreshold };
-    console.log("Sending payload to backend:", payload);
+    try {
+      const payload = { threshold: newThreshold };
 
-    const response = await fetch(`http://localhost:8000/alerts/${alert.id}/update-threshold`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+      const response = await fetch(`http://localhost:8000/alerts/${alert.id}/update-threshold`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      setError(true);
-      setErrorMsg(errorData.detail || "Update failed");
-      console.error("API error response:", errorData);
-    } else {
-      const data = await response.json();
-      alert.threshold = newThreshold;
-      alert.message = data.new_message || alert.message;
-      setSuccess(true);
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(true);
+        setErrorMsg(errorData.detail || "Update failed");
+      } else {
+        const data = await response.json();
 
-      if (onResolve) {
-        try {
-          onResolve(alert.id);
-        } catch (err) {
-          console.error("Error in onResolve:", err);
-        }
+        alert.threshold = newThreshold;
+        alert.message = data.new_message || alert.message;
+
+        setSuccess(true);
+        setThresholdModified(true);
+
+        onResolve(alert.id, newThreshold, alert.message); // Pass updated message too
       }
+    } catch (err) {
+      setError(true);
+      setErrorMsg("Network or server error");
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    setError(true);
-    setErrorMsg("Network or server error");
-    console.error("Fetch error:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -70,7 +66,7 @@ const AlertDetailsModal = ({ alert, onClose, onResolve }) => {
         </button>
 
         <h2 className="text-3xl font-extrabold mb-4 bg-gradient-to-r from-[#041f3a] via-[#2b7886] to-[#3eadc1] bg-clip-text text-transparent">
-          {alert.title || alert.type?.replace(/_/g, " ").toUpperCase()}
+          {alert.title}
         </h2>
 
         <p className="text-gray-600 mb-6">{alert.message}</p>
@@ -84,36 +80,37 @@ const AlertDetailsModal = ({ alert, onClose, onResolve }) => {
           <DetailItem label="Product" value={alert.productName} />
         </div>
 
-        <div className="mt-8">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Modify Threshold
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="number"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3eadc1] focus:outline-none"
-              value={newThreshold}
-              onChange={(e) => setNewThreshold(Number(e.target.value))}
-            />
-            <button
-              onClick={handleSetThreshold}
-              className="px-4 py-2 bg-[#3eadc1] text-white rounded-lg hover:bg-[#35a3b6] transition duration-200"
-              disabled={loading}
-            >
-              {loading ? "Setting..." : "Set"}
-            </button>
+        {!thresholdModified && (
+          <div className="mt-8">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Modify Threshold
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#3eadc1] focus:outline-none"
+                value={newThreshold}
+                onChange={(e) => setNewThreshold(Number(e.target.value))}
+                disabled={loading}
+              />
+              <button
+                onClick={handleSetThreshold}
+                className="px-4 py-2 bg-[#3eadc1] text-white rounded-lg hover:bg-[#35a3b6] transition duration-200"
+                disabled={loading}
+              >
+                {loading ? "Setting..." : "Set"}
+              </button>
+            </div>
           </div>
+        )}
 
-          {success && (
-            <p className="text-sm text-green-600 mt-2">
-              Threshold updated successfully!
-            </p>
-          )}
+        {success && (
+          <p className="text-sm text-green-600 mt-2">
+            Threshold updated successfully!
+          </p>
+        )}
 
-          {error && (
-            <p className="text-sm text-red-600 mt-2">{errorMsg}</p>
-          )}
-        </div>
+        {error && <p className="text-sm text-red-600 mt-2">{errorMsg}</p>}
       </div>
     </div>
   );

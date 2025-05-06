@@ -10,6 +10,8 @@ import {
   CATEGORY_MAP,
   getReadAlertsFromStorage,
   saveReadAlertToStorage,
+  getResolvedAlertsFromStorage,
+  saveResolvedAlertToStorage,
 } from "./utils/alertUtils";
 
 function App() {
@@ -21,7 +23,7 @@ function App() {
   const [typeFilter, setTypeFilter] = useState(null);
   const [locationFilter, setLocationFilter] = useState(null);
   const [selectedAlert, setSelectedAlert] = useState(null);
-  const [resolvedAlertIds, setResolvedAlertIds] = useState(new Set());
+  const [resolvedAlertIds, setResolvedAlertIds] = useState(getResolvedAlertsFromStorage());
 
 
 
@@ -122,7 +124,13 @@ function App() {
 
 
   const markAlertAsResolved = (alertId) => {
-    setResolvedAlertIds(prev => new Set(prev).add(alertId));
+    setResolvedAlertIds(prev => {
+      const newSet = new Set(prev);
+      newSet.add(alertId);
+      saveResolvedAlertToStorage(alertId);
+      return newSet;
+    });
+    setSelectedAlert(null);
   };
 
 
@@ -283,12 +291,35 @@ function App() {
           </div>
 
           {selectedAlert && (
-          <AlertDetails
-            alert={selectedAlert}
-            onClose={closeAlertModal}
-            onResolve={markAlertAsResolved} 
-          />
-        )}
+  <AlertDetails
+    alert={selectedAlert}
+    onClose={closeAlertModal}
+    onResolve={(alertId, newThreshold, newMessage) => {
+      // Save resolved state in localStorage
+      const prev = getResolvedAlertsFromStorage();
+      prev.add(alertId);
+      localStorage.setItem("resolvedAlerts", JSON.stringify([...prev]));
+
+      // Update UI
+      setResolvedAlertIds(prev);
+      setAlerts((prevAlerts) =>
+        prevAlerts.map((alert) =>
+          alert.id === alertId
+            ? {
+                ...alert,
+                threshold: newThreshold,
+                description: newMessage,
+              }
+            : alert
+        )
+      );
+
+      closeAlertModal();
+    }}
+  />
+)}
+
+
         </main>
       </div>
     </Router>
