@@ -1,49 +1,62 @@
 import React, { useState } from "react";
 
-const AlertDetailsModal = ({ alert, onClose }) => {
+const AlertDetailsModal = ({ alert, onClose, onResolve }) => {
   const [newThreshold, setNewThreshold] = useState(alert?.threshold || 0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  
 
   if (!alert) return null;
 
   const handleSetThreshold = async () => {
-    setLoading(true);
-    setSuccess(false);
-    setError(false);
-    setErrorMsg("");
+  setLoading(true);
+  setSuccess(false);
+  setError(false);
+  setErrorMsg("");
 
-    try {
-      const response = await fetch(
-        `http://localhost:8000/alerts/${alert.id}/update-threshold`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ threshold: newThreshold }),
-        }
-      );
+  try {
+    const payload = { threshold: newThreshold };
+    console.log("Sending payload to backend:", payload);
 
-      if (response.ok) {
-        const data = await response.json();
-        setSuccess(true);
-        alert.threshold = newThreshold;
-        alert.message = data.new_message || alert.message;
-      } else {
-        const errorData = await response.json();
-        setError(true);
-        setErrorMsg(errorData.detail || "Update failed");
-      }
-    } catch (err) {
+    const response = await fetch(`http://localhost:8000/alerts/${alert.id}/update-threshold`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
       setError(true);
-      setErrorMsg("Network or server error");
-    } finally {
-      setLoading(false);
+      setErrorMsg(errorData.detail || "Update failed");
+      console.error("API error response:", errorData);
+    } else {
+      const data = await response.json();
+      alert.threshold = newThreshold;
+      alert.message = data.new_message || alert.message;
+      setSuccess(true);
+
+      if (onResolve) {
+        try {
+          onResolve(alert.id);
+        } catch (err) {
+          console.error("Error in onResolve:", err);
+        }
+      }
     }
-  };
+  } catch (err) {
+    setError(true);
+    setErrorMsg("Network or server error");
+    console.error("Fetch error:", err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">

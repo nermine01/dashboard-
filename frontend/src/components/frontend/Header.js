@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
 import { RefreshCw, Bell } from "lucide-react";
-import NotificationButton from "./NotificationButton";        
 import NotificationsDropdown from "./NotificationsDropdown";
 import logo from "../../assets/LOGO__RETSCI.png";
 

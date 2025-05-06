@@ -21,6 +21,9 @@ function App() {
   const [typeFilter, setTypeFilter] = useState(null);
   const [locationFilter, setLocationFilter] = useState(null);
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [resolvedAlertIds, setResolvedAlertIds] = useState(new Set());
+
+
 
   useEffect(() => {
     fetch("http://localhost:8000/products/groups")
@@ -117,6 +120,12 @@ function App() {
       .catch((error) => console.error("Error fetching product groups:", error));
   }, []);
 
+
+  const markAlertAsResolved = (alertId) => {
+    setResolvedAlertIds(prev => new Set(prev).add(alertId));
+  };
+
+
   const categoryCounts = {
     critical: alerts.filter((alert) => alert.type === "critical").length,
     inventory: alerts.filter((alert) => alert.tags.some((tag) => tag.label.toLowerCase().includes("inventory"))).length,
@@ -158,11 +167,13 @@ function App() {
           loc.toLowerCase().includes(locationFilter.toLowerCase())
         ));
 
-    const matchesTab =
-      activeTab === "All Alerts" ||
-      (activeTab === "Unread" && alert.isNew) ||
-      (activeTab === "Reviewed" && !alert.isNew) ||
-      (activeTab === "Critical" && alert.type === "critical");
+        const matchesTab =
+        (activeTab === "All Alerts" && !resolvedAlertIds.has(alert.id)) ||
+        (activeTab === "Unread" && alert.isNew && !resolvedAlertIds.has(alert.id)) ||
+        (activeTab === "Reviewed" && !alert.isNew && !resolvedAlertIds.has(alert.id)) ||
+        (activeTab === "Critical" && alert.type === "critical" && !resolvedAlertIds.has(alert.id)) ||
+        (activeTab === "Resolved" && resolvedAlertIds.has(alert.id));
+      
 
     return (
       matchesSearch &&
@@ -174,14 +185,7 @@ function App() {
     );
   });
 
-  const toggleReadStatus = (id, isRead) => {
-    const updatedAlerts = alerts.map((alert) =>
-      alert.id === id ? { ...alert, isNew: !isRead } : alert
-    );
-    setAlerts(updatedAlerts);
-    if (isRead) saveReadAlertToStorage(id);
-  };
-
+  
   const openAlertModal = (alert) => {
     setSelectedAlert(alert);
     saveReadAlertToStorage(alert.id);
@@ -279,8 +283,12 @@ function App() {
           </div>
 
           {selectedAlert && (
-            <AlertDetails alert={selectedAlert} onClose={closeAlertModal} />
-          )}
+          <AlertDetails
+            alert={selectedAlert}
+            onClose={closeAlertModal}
+            onResolve={markAlertAsResolved} 
+          />
+        )}
         </main>
       </div>
     </Router>
