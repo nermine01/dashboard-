@@ -2,6 +2,7 @@ from database import SessionLocal
 from models import Alert
 from sqlalchemy.orm import Session
 from collections import defaultdict
+from datetime import datetime
 
 def check_alert_duplicates(db: Session):
     # Query all alerts

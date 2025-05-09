@@ -1,29 +1,30 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from typing import List
-import re
+from sqlalchemy.orm import Session, joinedload
 import logging
 import models, schemas, crud
 from database import get_db
 from schemas import ThresholdUpdate
-from sqlalchemy.orm import joinedload
 from models import Product, ProductLocation
+from apscheduler.schedulers.background import BackgroundScheduler
+from alerts import run_alerts
+import re
+import asyncio
+from alerts import send_grouped_master_data_emails
 
+# Scheduler setup
+scheduler = BackgroundScheduler()
 
-from alerts import (
-    check_overstock,
-    check_low_stock,
-    check_stock_shrinkage,
-    check_near_expiration,
-    check_near_end_of_life,
-    check_sufficient_stock,
-    check_stocktaking,
-    check_product_recall,
-    check_sales_alert
-)
+def start_scheduler():
+    if not scheduler.running:
+        scheduler.add_job(run_alerts, 'interval', minutes=1)
+        scheduler.start()
+        print("Scheduler started with 60-minute interval...")
+    else:
+        print("Scheduler already running. Skipping start.")
 
+# Initialize FastAPI app
 app = FastAPI()
 
 # CORS setup
@@ -34,13 +35,27 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-from models import Alert
+
+@app.on_event("startup")
+async def on_startup():
+    print("📌 Running one-time alert check on startup...")
+    await send_grouped_master_data_emails()  # immediate check
+    print("✅ Initial alerts completed.")
+    asyncio.create_task(run_alerts_loop())   # loop starts in background
+    start_scheduler()
+
+
+@app.on_event("shutdown")
+async def on_shutdown():
+    scheduler.shutdown()
+    print("Scheduler stopped...")
+
 @app.get("/alerts")
 def get_all_alerts(db: Session = Depends(get_db)):
     alerts = (
-        db.query(Alert)
+        db.query(models.Alert)
         .options(
-            joinedload(Alert.product)
+            joinedload(models.Alert.product)
             .joinedload(Product.product_locations)
             .joinedload(ProductLocation.location)
         )
@@ -75,10 +90,9 @@ def get_all_alerts(db: Session = Depends(get_db)):
 
     return JSONResponse(content={"alerts": categorized_alerts})
 
-
 @app.put("/alerts/{alert_id}/update-threshold")
 def update_embedded_threshold(alert_id: int, update: ThresholdUpdate, db: Session = Depends(get_db)):
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    alert = db.query(models.Alert).filter(models.Alert.id == alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail="Alert not found")
 
@@ -91,11 +105,9 @@ def update_embedded_threshold(alert_id: int, update: ThresholdUpdate, db: Sessio
     else:
         raise HTTPException(status_code=400, detail="Unsupported alert type")
 
-    # Build regex to find the label + value pair e.g. (Max: 30)
     pattern = re.compile(rf"\({label}:\s*\d+\)", re.IGNORECASE)
     new_segment = f"({label}: {int(update.threshold)})"
 
-    # Replace only if a match is found
     if pattern.search(alert.message):
         alert.message = pattern.sub(new_segment, alert.message)
     else:
@@ -114,13 +126,12 @@ def get_product_groups(db: Session = Depends(get_db)):
     for product in products:
         group4 = product.category
         if not group4:
-            continue  # Skip if no category
+            continue
 
         group3 = group4.group3
         group2 = group3.group2 if group3 else None
         group1 = group2.group1 if group2 else None
 
-        # Ensure all group levels exist before appending
         if not (group1 and group2 and group3):
             continue
 
@@ -134,14 +145,20 @@ def get_product_groups(db: Session = Depends(get_db)):
         })
 
     return results
+async def run_alerts_loop():
+    while True:
+        try:
+            print("🚀 Running alert checker")
+            await send_grouped_master_data_emails()
+        except Exception as e:
+            print(f"❌ Error during alert loop: {e}")
+        print("⏳ Sleeping for 1 hour..change to 3600.")
+        await asyncio.sleep(60)
 
 
-# Run the application through Python command (no need for command line uvicorn)
+# Run app when executing the file directly
 if __name__ == "__main__":
     import uvicorn
-    # To use uvicorn to serve the app when running the script
-    logging.basicConfig(level=logging.DEBUG)  # Setup logging to DEBUG level
+    logging.basicConfig(level=logging.DEBUG)
     logging.debug("Starting FastAPI app with debugging enabled...")
-    
-    # Run the FastAPI app with debugging
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True, log_level="debug")
