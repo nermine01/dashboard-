@@ -70,12 +70,17 @@ function AlertAnalyticsAccordion({ alerts }) {
   const getAlertSeverityDistribution = () => {
     const distribution = {}
     alerts.forEach((alert) => {
-      const severity = alert.type || "Unknown"
+      let severity = alert.type || "Unknown"
+      // Map severity labels as per new specification
+      if (severity.toLowerCase() === "info") severity = "Low"
+      else if (severity.toLowerCase() === "critical") severity = "High"
+      else if (severity.toLowerCase() === "warning") severity = "Medium"
       distribution[severity] = (distribution[severity] || 0) + 1
     })
     return Object.entries(distribution).map(([severity, count]) => ({ name: severity, value: count }))
   }
 
+  
   const getAlertStatusDistribution = () => {
     const distribution = { New: 0, Reviewed: 0 }
     alerts.forEach((alert) => {
